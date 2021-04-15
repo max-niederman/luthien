@@ -1,10 +1,12 @@
 use log::trace;
-use structopt::StructOpt;
 use std::path::PathBuf;
+use structopt::StructOpt;
+
+mod theme;
 
 #[derive(Debug, PartialEq, Eq, Clone, StructOpt)]
 #[structopt(name = "luthien")]
-struct Opt {
+pub struct Opt {
     /// Image to use for theming.
     ///
     /// If colors are specified, the image will be recolored with those colors. Otherwise, the
@@ -34,6 +36,7 @@ fn main() {
     todo!("generate and apply theme");
 }
 
+#[cfg(test)]
 mod tests {
     use super::Opt;
     use std::path::PathBuf;
