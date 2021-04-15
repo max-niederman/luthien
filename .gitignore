@@ -1,0 +1,7 @@
+# Rust
+/target
+
+# Editor 
+/.vim
+.vimrc
+.nvimrc
