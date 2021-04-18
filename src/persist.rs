@@ -1,7 +1,8 @@
 use super::theme;
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io;
 use std::path::PathBuf;
 
@@ -13,12 +14,32 @@ pub struct Paths {
 }
 
 impl Paths {
-    pub fn get_theme(&self, locator: PathBuf) -> io::Result<theme::Theme> {
-        let file =
-            File::open(locator.clone()).or_else(|_| File::open(self.themes.join(locator)))?;
+    pub fn get_config(&self) -> io::Result<Config> {
+        match fs::read(&self.config) {
+            Ok(raw) => {
+                toml::from_slice(&raw).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+            }
+            Err(err) => {
+                if err.kind() == io::ErrorKind::NotFound {
+                    info!("Config file not found. Using default.");
+                    Ok(Config::default())
+                } else {
+                    Err(err)
+                }
+            }
+        }
+    }
+
+    pub fn get_theme(&self, locator: PathBuf) -> Option<io::Result<theme::Theme>> {
+        let file = File::open(locator.clone())
+            .or_else(|_| File::open(self.themes.join(locator)))
+            .ok()?;
         let reader = io::BufReader::new(file);
 
-        serde_json::from_reader(reader).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        Some(
+            serde_json::from_reader(reader)
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e)),
+        )
     }
 }
 
@@ -68,10 +89,15 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn nonexistent_theme() {
+    fn get_config() {
         let paths = Paths::default();
-        paths
-            .get_theme(PathBuf::from("/non/existent/path"))
-            .unwrap_err();
+        paths.get_config().unwrap();
+    }
+
+    #[test]
+    fn get_nonexistent_theme() {
+        let paths = Paths::default();
+        let theme = paths.get_theme(PathBuf::from("/non/existent/path"));
+        debug_assert!(theme.is_none(), "Theme was Some:\n{:?}", theme);
     }
 }

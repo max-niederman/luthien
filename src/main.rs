@@ -1,4 +1,5 @@
 use log::trace;
+use std::io;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -28,14 +29,19 @@ struct Opt {
     apply: bool,
 }
 
-fn main() {
+fn main() -> io::Result<()> {
     pretty_env_logger::init();
 
     trace!("Parsing opts.");
     let opt = Opt::from_args();
     trace!("Parsed opts: {:?}", opt);
 
-    todo!("generate and apply theme");
+    trace!("Loading configuration.");
+    let paths = persist::Paths::default();
+    let config = paths.get_config()?;
+    trace!("Loaded configuration: {:?}", config);
+
+    Ok(())
 }
 
 #[cfg(test)]

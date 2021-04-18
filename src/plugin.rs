@@ -1,10 +1,10 @@
 use super::persist::PluginConfig;
 use super::theme::Theme;
+use log::trace;
 use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
-use log::trace;
 
 /// Data provided to the plugin process through its stdin
 #[derive(Debug, Clone, Deserialize, Serialize)]
