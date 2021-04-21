@@ -455,6 +455,7 @@ dependencies = [
  "image",
  "ipipe",
  "log",
+ "num-traits",
  "palette",
  "pretty_env_logger",
  "serde",

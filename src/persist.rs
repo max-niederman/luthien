@@ -1,4 +1,4 @@
-use super::theme;
+use crate::theme;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

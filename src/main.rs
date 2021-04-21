@@ -3,6 +3,8 @@ use std::io;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
+mod color;
+mod mod_arith;
 mod persist;
 mod plugin;
 mod theme;

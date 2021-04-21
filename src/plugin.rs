@@ -1,5 +1,5 @@
-use super::persist::PluginConfig;
-use super::theme::Theme;
+use crate::persist::PluginConfig;
+use crate::theme::Theme;
 use log::trace;
 use serde::{Deserialize, Serialize};
 use std::io;
