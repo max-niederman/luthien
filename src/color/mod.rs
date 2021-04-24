@@ -3,6 +3,8 @@ use num_traits::{Float, Signed};
 use palette::{encoding::Srgb, white_point, IntoColor};
 use std::ops::RangeInclusive;
 
+mod average;
+
 #[derive(Clone)]
 struct ColorRegion<T>
 where
