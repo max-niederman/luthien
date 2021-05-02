@@ -1,17 +1,19 @@
+use num_traits::{Float, Signed};
 use palette::{FromColor, IntoColor};
 use std::ops::Add;
 
-pub fn lab<I, R>(iter: I) -> Option<R>
+pub fn lab<I, C, R>(iter: I) -> Option<R>
 where
     I: ExactSizeIterator,
-    I::Item: IntoColor,
-    R: FromColor,
+    I::Item: IntoColor<super::WhitePoint, C>,
+    C: palette::Component + Float + Signed,
+    R: FromColor<super::WhitePoint, C>,
 {
     let len = iter.len();
 
     iter.map(IntoColor::into_lab)
         .reduce(Add::add)
-        .map(|c| c / len as f32)
+        .map(|c| c / C::from(len).unwrap())
         .map(FromColor::from_lab)
 }
 

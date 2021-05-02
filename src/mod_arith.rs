@@ -2,12 +2,12 @@ use num_traits::{NumOps, Signed};
 use std::ops;
 
 #[derive(Clone, Copy)]
-pub struct Space<M: Copy> {
+pub struct Space<M> {
     modulus: M,
 }
 
-impl<M: Copy> Space<M> {
-    pub fn new(modulus: M) -> Self {
+impl<M> Space<M> {
+    pub const fn new(modulus: M) -> Self {
         Self { modulus }
     }
 
@@ -17,6 +17,7 @@ impl<M: Copy> Space<M> {
 
     pub fn modulo<N>(&self, n: N) -> N
     where
+        M: Copy,
         N: ops::Add<M, Output = N> + ops::Rem<M, Output = N>,
     {
         ((n % self.modulus) + self.modulus) % self.modulus
@@ -24,6 +25,7 @@ impl<M: Copy> Space<M> {
 
     pub fn sub<N>(&self, n1: N, n2: N) -> N
     where
+        M: Copy,
         N: ops::Sub,
         <N as ops::Sub>::Output: ops::Rem<M, Output = N>,
     {
@@ -32,6 +34,7 @@ impl<M: Copy> Space<M> {
 
     pub fn dist<N>(&self, n1: N, n2: N) -> N
     where
+        M: Copy,
         N: Copy
             + PartialOrd
             + Signed
@@ -53,6 +56,7 @@ impl<M: Copy> Space<M> {
 
     pub fn range<N>(&self, start: N, end: N) -> Range<M, N>
     where
+        M: Copy,
         N: Copy + PartialOrd + NumOps + NumOps<M> + Signed,
     {
         Range::new(self.clone(), start, end)

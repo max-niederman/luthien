@@ -5,6 +5,7 @@ use structopt::StructOpt;
 
 mod color;
 mod mod_arith;
+mod palette_gen;
 mod persist;
 mod plugin;
 mod theme;

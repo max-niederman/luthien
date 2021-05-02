@@ -1,4 +1,4 @@
-use crate::theme;
+use crate::{color, theme};
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -57,6 +57,77 @@ impl Default for Paths {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct RegionConfig {
+    hue: (f32, f32),
+    saturation: (f32, f32),
+    value: (f32, f32),
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct RegionsConfig {
+    black: RegionConfig,
+}
+
+impl From<RegionConfig> for color::Region<f32> {
+    fn from(config: RegionConfig) -> Self {
+        Self::new(
+            config.hue.0..=config.hue.1,
+            config.saturation.0..=config.saturation.1,
+            config.value.0..=config.value.1,
+        )
+    }
+}
+
+impl Default for theme::Palette<RegionConfig> {
+    fn default() -> Self {
+        const PRIMARY_SAT: (f32, f32) = (0.1, 1.0);
+        const PRIMARY_VALUE: (f32, f32) = (0.1, 1.0);
+        Self {
+            black: RegionConfig {
+                hue: (0.0, 360.0),
+                saturation: (0.0, 0.5),
+                value: (0.0, PRIMARY_VALUE.0),
+            },
+            red: RegionConfig {
+                hue: (345.0, 15.0),
+                saturation: PRIMARY_SAT,
+                value: PRIMARY_VALUE,
+            },
+            green: RegionConfig {
+                hue: (90.0, 150.0),
+                saturation: PRIMARY_SAT,
+                value: PRIMARY_VALUE,
+            },
+            yellow: RegionConfig {
+                hue: (45.0, 75.0),
+                saturation: PRIMARY_SAT,
+                value: PRIMARY_VALUE,
+            },
+            blue: RegionConfig {
+                hue: (195.0, 255.0),
+                saturation: PRIMARY_SAT,
+                value: PRIMARY_VALUE,
+            },
+            purple: RegionConfig {
+                hue: (270.0, 300.0),
+                saturation: PRIMARY_SAT,
+                value: PRIMARY_VALUE,
+            },
+            cyan: RegionConfig {
+                hue: (165.0, 195.0),
+                saturation: PRIMARY_SAT,
+                value: PRIMARY_VALUE,
+            },
+            white: RegionConfig {
+                hue: (0.0, 360.0),
+                saturation: (0.0, PRIMARY_SAT.0),
+                value: (0.5, 1.0),
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PluginConfig {
     pub executable: String,
@@ -70,17 +141,10 @@ pub struct PluginConfig {
 }
 
 #[serde(default)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
+    pub colors: theme::Palette<RegionConfig>,
     pub plugins: Vec<PluginConfig>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            plugins: Vec::default(),
-        }
-    }
 }
 
 #[cfg(test)]
