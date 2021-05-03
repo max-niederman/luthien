@@ -110,8 +110,8 @@ where
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Theme {
-    background: PathBuf,
-    colors: Palette<Srgb>,
+    pub background: PathBuf,
+    pub colors: Palette<Srgb>,
 }
 
 impl fmt::Display for Theme {

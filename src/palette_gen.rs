@@ -2,6 +2,7 @@ use crate::color::{Region, WhitePoint};
 use crate::theme::Palette;
 use num_traits::{Float, Signed};
 use palette::{FromColor, IntoColor};
+use rayon::prelude::*;
 
 impl<C> Palette<Region<C>>
 where
@@ -9,7 +10,8 @@ where
 {
     fn split<I>(&self, iter: I) -> Palette<Vec<I::Item>>
     where
-        I: Clone + Iterator,
+        C: Sync,
+        I: Clone + ParallelIterator,
         I::Item: Clone + IntoColor<WhitePoint, C>,
     {
         self.clone()
@@ -25,9 +27,9 @@ pub enum AverageMethod {
 impl AverageMethod {
     fn average<I, C, R>(&self, iter: I) -> Option<R>
     where
-        I: ExactSizeIterator,
+        I: IndexedParallelIterator,
         I::Item: IntoColor<WhitePoint, C>,
-        C: palette::Component + Float + Signed,
+        C: Send + palette::Component + Float + Signed,
         R: FromColor<WhitePoint, C>,
     {
         use crate::color::average::*;
@@ -53,14 +55,14 @@ impl Default for GenerationOpts {
 impl GenerationOpts {
     pub fn generate<I, C, R>(&self, cols: I, regs: Palette<Region<C>>) -> Palette<R>
     where
-        I: Clone + Iterator,
+        I: Clone + ParallelIterator,
         I::Item: Clone + IntoColor<WhitePoint, C>,
-        C: palette::Component + Float + Signed,
+        C: Send + Sync + palette::Component + Float + Signed,
         R: FromColor<WhitePoint, C>,
     {
         regs.split(cols)
-            .map(|part| self.average_method.average(part.into_iter()))
-            .map(Option::unwrap) // TODO: Handle images which are missing necessary colors
+            .map(|part| self.average_method.average(part.into_par_iter()))
+            .map(Option::unwrap) // TODO: Handle images missing necessary colors.
     }
 }
 
@@ -68,6 +70,7 @@ impl GenerationOpts {
 mod tests {
     use crate::color;
     use crate::theme::Palette;
+    use rayon::prelude::*;
 
     #[test]
     fn color_split() {
@@ -78,14 +81,14 @@ mod tests {
             Palette::<persist::RegionConfig>::default().map(Into::into);
 
         assert_eq!(
-            regs.split([Hsl::new(0.0, 0.0, 0.0)].iter().cloned()),
+            regs.split([Hsl::new(0.0, 0.0, 0.0)].par_iter().cloned()),
             Palette {
                 black: vec![Hsl::new(0.0, 0.0, 0.0)],
                 ..Default::default()
             }
         );
         assert_eq!(
-            regs.split([Hsl::new(0.0, 1.0, 1.0)].iter().cloned()),
+            regs.split([Hsl::new(0.0, 1.0, 1.0)].par_iter().cloned()),
             Palette {
                 red: vec![Hsl::new(0.0, 1.0, 1.0)],
                 ..Default::default()

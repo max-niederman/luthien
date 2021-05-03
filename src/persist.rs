@@ -1,5 +1,5 @@
 use crate::{color, theme};
-use log::info;
+use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -21,7 +21,7 @@ impl Paths {
             }
             Err(err) => {
                 if err.kind() == io::ErrorKind::NotFound {
-                    info!("Config file not found. Using default.");
+                    warn!("Config file not found. Using default.");
                     Ok(Config::default())
                 } else {
                     Err(err)
@@ -30,16 +30,12 @@ impl Paths {
         }
     }
 
-    pub fn get_theme(&self, locator: PathBuf) -> Option<io::Result<theme::Theme>> {
-        let file = File::open(locator.clone())
-            .or_else(|_| File::open(self.themes.join(locator)))
-            .ok()?;
+    pub fn get_theme(&self, locator: PathBuf) -> io::Result<theme::Theme> {
+        let file =
+            File::open(locator.clone()).or_else(|_| File::open(self.themes.join(locator)))?;
         let reader = io::BufReader::new(file);
 
-        Some(
-            serde_json::from_reader(reader)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e)),
-        )
+        serde_json::from_reader(reader).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 }
 
@@ -162,6 +158,6 @@ mod tests {
     fn get_nonexistent_theme() {
         let paths = Paths::default();
         let theme = paths.get_theme(PathBuf::from("/non/existent/path"));
-        debug_assert!(theme.is_none(), "Theme was Some:\n{:?}", theme);
+        debug_assert!(theme.is_err(), "Theme was Ok:\n{:?}", theme);
     }
 }
