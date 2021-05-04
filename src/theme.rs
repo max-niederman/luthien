@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Palette<T> {
     pub black: T,
     pub red: T,
@@ -121,7 +121,7 @@ impl fmt::Display for Theme {
             "Background Image: {}",
             self.background.to_str().ok_or(fmt::Error)?
         )?;
-        writeln!(f, "Color Palette: {}", self.colors)
+        write!(f, "Color Palette: {}", self.colors)
     }
 }
 
@@ -168,7 +168,7 @@ mod tests {
         assert_eq!(
             format!("{}", test_theme()),
             format!(
-                "Background Image: {}\nColor Palette: {}\n",
+                "Background Image: {}\nColor Palette: {}",
                 test_theme().background.to_str().unwrap(),
                 test_theme().colors
             )

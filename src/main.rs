@@ -1,7 +1,8 @@
-use log::{info, trace};
+use log::{error, info, trace};
 use rayon::prelude::*;
 use std::io;
 use std::path::PathBuf;
+use std::thread;
 use structopt::StructOpt;
 
 mod color;
@@ -38,11 +39,15 @@ struct Opt {
     output: Option<PathBuf>,
 }
 
-fn get_theme(opt: Opt, paths: persist::Paths, config: persist::Config) -> io::Result<theme::Theme> {
+fn get_theme(
+    opt: &Opt,
+    paths: &persist::Paths,
+    config: &persist::Config,
+) -> io::Result<theme::Theme> {
     if let Some(path) = &opt.theme {
         info!("Reading theme from filesystem.");
         paths.get_theme(path.clone())
-    } else if let Some(path) = opt.image {
+    } else if let Some(path) = &opt.image {
         info!("Generating theme from image.");
 
         trace!("Reading and decoding image.");
@@ -53,7 +58,7 @@ fn get_theme(opt: Opt, paths: persist::Paths, config: persist::Config) -> io::Re
             .into_rgb8();
 
         Ok(theme::Theme {
-            background: path,
+            background: path.clone(),
             colors: {
                 use palette::Srgb;
 
@@ -76,6 +81,37 @@ fn get_theme(opt: Opt, paths: persist::Paths, config: persist::Config) -> io::Re
     }
 }
 
+fn run_plugins(config: &persist::Config, theme: theme::Theme) -> io::Result<()> {
+    use plugin::Plugin;
+
+    fn get_pipe() -> ipipe::Result<ipipe::Pipe> {
+        let pipe_path =
+            std::env::temp_dir().join(format!("luthien_plugin_stdio_{}", std::process::id()));
+        ipipe::Pipe::open(&pipe_path, ipipe::OnCleanup::Delete)
+    }
+
+    thread::spawn(|| io::copy(&mut io::stdin(), &mut get_pipe()?));
+    thread::spawn(|| io::copy(&mut get_pipe()?, &mut io::stdout()));
+
+    for pl in config.plugins.iter() {
+        let status = pl.run(theme.clone(), Some(get_pipe()?.path()))?;
+        let name = pl
+            .executable
+            .file_name()
+            .unwrap_or_else(|| pl.executable.as_os_str())
+            .to_str()
+            .unwrap();
+
+        if status.success() {
+            info!("Plugin {} exited successfully.", name);
+        } else {
+            error!("Plugin {} exited with a non-zero error code.", name);
+        }
+    }
+
+    Ok(())
+}
+
 fn main() -> io::Result<()> {
     pretty_env_logger::init();
 
@@ -87,10 +123,20 @@ fn main() -> io::Result<()> {
     let config = paths.get_config()?;
 
     info!("Loading or generating theme.");
-    let theme = get_theme(opt, paths, config)?;
+    let theme = get_theme(&opt, &paths, &config)?;
 
-    println!("{}", theme.colors);
-    println!("{}", toml::to_string_pretty(&theme).unwrap());
+    info!("Theme generated:\n{}", theme);
+
+    if let Some(out) = opt.output {
+        info!("Writing theme to output.");
+        std::fs::write(
+            out,
+            toml::to_string_pretty(&theme).expect("Error serializing theme."),
+        )?;
+    }
+
+    info!("Running plugins.");
+    run_plugins(&config, theme)?;
 
     Ok(())
 }

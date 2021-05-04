@@ -20,11 +20,12 @@ pub trait Plugin {
 
 impl Plugin for PluginConfig {
     fn run(&self, theme: Theme, stdin_pipe: Option<&Path>) -> io::Result<ExitStatus> {
-        trace!("Spawning plugin process: {}", self.executable);
+        trace!("Spawning plugin process: {:?}", self.executable);
         let mut child = Command::new(&self.executable)
             .args(&self.args)
             .envs(&self.env)
             .stdin(Stdio::piped())
+            .stdout(Stdio::null()) // In the future this will be piped to allow plugins to provide more data when they error.
             .spawn()?;
 
         trace!("Writing plugin input.");
