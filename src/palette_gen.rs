@@ -21,7 +21,7 @@ where
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AverageMethod {
-    LabArithmetic,
+    LabCentroid,
 }
 
 impl AverageMethod {
@@ -35,7 +35,7 @@ impl AverageMethod {
         use crate::color::average::*;
 
         match self {
-            Self::LabArithmetic => lab(iter),
+            Self::LabCentroid => lab_centroid(iter),
         }
     }
 }
@@ -47,7 +47,7 @@ pub struct GenerationOpts {
 impl Default for GenerationOpts {
     fn default() -> Self {
         Self {
-            average_method: AverageMethod::LabArithmetic,
+            average_method: AverageMethod::LabCentroid,
         }
     }
 }
@@ -88,9 +88,9 @@ mod tests {
             }
         );
         assert_eq!(
-            regs.split([Hsl::new(0.0, 1.0, 1.0)].par_iter().cloned()),
+            regs.split([Hsl::new(0.0, 1.0, 0.5)].par_iter().cloned()),
             Palette {
-                red: vec![Hsl::new(0.0, 1.0, 1.0)],
+                red: vec![Hsl::new(0.0, 1.0, 0.5)],
                 ..Default::default()
             }
         );

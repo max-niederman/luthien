@@ -1,5 +1,4 @@
 use log::{info, trace};
-use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 use std::io;
 use std::path::PathBuf;
@@ -61,8 +60,12 @@ fn get_theme(opt: Opt, paths: persist::Paths, config: persist::Config) -> io::Re
                 trace!("Generating color palette.");
                 let generator = palette_gen::GenerationOpts::default();
                 generator.generate(
-                    img.pixels().par_bridge().map(|pix| {
-                        Srgb::from_components((pix.0[0] as f32, pix.0[1] as f32, pix.0[2] as f32))
+                    img.par_chunks(3).map(|pix| {
+                        Srgb::from_components((
+                            pix[0] as f32 / 255.0,
+                            pix[1] as f32 / 255.0,
+                            pix[2] as f32 / 255.0,
+                        ))
                     }),
                     config.colors.map(Into::into),
                 )

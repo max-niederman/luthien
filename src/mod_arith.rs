@@ -59,7 +59,7 @@ impl<M> Space<M> {
         M: Copy,
         N: Copy + PartialOrd + NumOps + NumOps<M> + Signed,
     {
-        Range::new(self.clone(), start, end)
+        Range::new(*self, start, end)
     }
 }
 

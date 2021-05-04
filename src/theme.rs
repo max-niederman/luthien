@@ -43,7 +43,7 @@ impl<T> Palette<T> {
             blue: v.clone(),
             purple: v.clone(),
             cyan: v.clone(),
-            white: v.clone(),
+            white: v,
         }
     }
 

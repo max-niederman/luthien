@@ -1,9 +1,9 @@
 use num_traits::{Float, Signed};
 use palette::{FromColor, IntoColor};
-use std::ops::Add;
 use rayon::prelude::*;
+use std::ops::Add;
 
-pub fn lab<I, C, R>(iter: I) -> Option<R>
+pub fn lab_centroid<I, C, R>(iter: I) -> Option<R>
 where
     I: IndexedParallelIterator,
     I::Item: IntoColor<super::WhitePoint, C>,
@@ -11,10 +11,9 @@ where
     R: FromColor<super::WhitePoint, C>,
 {
     let len = iter.len();
-
     iter.map(IntoColor::into_lab)
         .reduce_with(Add::add)
-        .map(|c| c / C::from(len).unwrap())
+        .map(|sum| sum / C::from(len).unwrap())
         .map(FromColor::from_lab)
 }
 
@@ -24,9 +23,9 @@ mod tests {
     use rayon::prelude::*;
 
     #[test]
-    fn lab() {
+    fn lab_centroid() {
         assert_eq!(
-            super::lab(
+            super::lab_centroid(
                 [Lab::new(1.0, 2.0, 3.0), Lab::new(1.0, 2.0, 3.0)]
                     .par_iter()
                     .cloned()
@@ -34,7 +33,7 @@ mod tests {
             Some(Lab::new(1.0, 2.0, 3.0))
         );
         assert_eq!(
-            super::lab(
+            super::lab_centroid(
                 [Lab::new(1.0, 2.0, 3.0), Lab::new(2.0, 3.0, 4.0)]
                     .par_iter()
                     .cloned()

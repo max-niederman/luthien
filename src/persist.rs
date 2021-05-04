@@ -57,7 +57,7 @@ impl Default for Paths {
 pub struct RegionConfig {
     hue: (f32, f32),
     saturation: (f32, f32),
-    value: (f32, f32),
+    lightness: (f32, f32),
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -70,7 +70,7 @@ impl From<RegionConfig> for color::Region<f32> {
         Self::new(
             config.hue.0..=config.hue.1,
             config.saturation.0..=config.saturation.1,
-            config.value.0..=config.value.1,
+            config.lightness.0..=config.lightness.1,
         )
     }
 }
@@ -78,47 +78,47 @@ impl From<RegionConfig> for color::Region<f32> {
 impl Default for theme::Palette<RegionConfig> {
     fn default() -> Self {
         const PRIMARY_SAT: (f32, f32) = (0.1, 1.0);
-        const PRIMARY_VALUE: (f32, f32) = (0.1, 1.0);
+        const PRIMARY_LIGHTNESS: (f32, f32) = (0.2, 0.9);
         Self {
             black: RegionConfig {
                 hue: (0.0, 360.0),
-                saturation: (0.0, 0.5),
-                value: (0.0, PRIMARY_VALUE.0),
+                saturation: (0.0, 1.0),
+                lightness: (0.0, PRIMARY_LIGHTNESS.0),
             },
             red: RegionConfig {
                 hue: (345.0, 15.0),
                 saturation: PRIMARY_SAT,
-                value: PRIMARY_VALUE,
+                lightness: PRIMARY_LIGHTNESS,
             },
             green: RegionConfig {
                 hue: (90.0, 150.0),
                 saturation: PRIMARY_SAT,
-                value: PRIMARY_VALUE,
+                lightness: PRIMARY_LIGHTNESS,
             },
             yellow: RegionConfig {
                 hue: (45.0, 75.0),
                 saturation: PRIMARY_SAT,
-                value: PRIMARY_VALUE,
+                lightness: PRIMARY_LIGHTNESS,
             },
             blue: RegionConfig {
                 hue: (195.0, 255.0),
                 saturation: PRIMARY_SAT,
-                value: PRIMARY_VALUE,
+                lightness: PRIMARY_LIGHTNESS,
             },
             purple: RegionConfig {
                 hue: (270.0, 300.0),
                 saturation: PRIMARY_SAT,
-                value: PRIMARY_VALUE,
+                lightness: PRIMARY_LIGHTNESS,
             },
             cyan: RegionConfig {
                 hue: (165.0, 195.0),
                 saturation: PRIMARY_SAT,
-                value: PRIMARY_VALUE,
+                lightness: PRIMARY_LIGHTNESS,
             },
             white: RegionConfig {
                 hue: (0.0, 360.0),
-                saturation: (0.0, PRIMARY_SAT.0),
-                value: (0.5, 1.0),
+                saturation: (0.0, 1.0),
+                lightness: (PRIMARY_LIGHTNESS.1, 1.0),
             },
         }
     }

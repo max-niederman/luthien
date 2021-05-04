@@ -33,11 +33,11 @@ where
     where
         C: IntoColor<super::WhitePoint, T>,
     {
-        let hsv = color.into_hsl::<Srgb>();
+        let hsl = color.into_hsl::<Srgb>();
 
-        self.hue.contains(hsv.hue.to_degrees())
-            && self.saturation.contains(&hsv.saturation)
-            && self.lightness.contains(&hsv.lightness)
+        self.hue.contains(hsl.hue.to_degrees())
+            && self.saturation.contains(&hsl.saturation)
+            && self.lightness.contains(&hsl.lightness)
     }
 }
 

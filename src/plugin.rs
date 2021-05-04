@@ -32,7 +32,7 @@ impl Plugin for PluginConfig {
             child
                 .stdin
                 .as_mut()
-                .ok_or(io::Error::from(io::ErrorKind::BrokenPipe))?,
+                .ok_or_else(|| io::Error::from(io::ErrorKind::BrokenPipe))?,
             &PluginInput {
                 options: self.options.clone(),
                 pipe: stdin_pipe.map(PathBuf::from),
