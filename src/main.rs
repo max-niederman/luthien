@@ -1,5 +1,7 @@
-use log::{error, info, trace};
+use log::{error, info, trace, warn};
 use rayon::prelude::*;
+use std::fs::{self, File};
+use std::hash::{Hash, Hasher};
 use std::io;
 use std::path::PathBuf;
 use std::thread;
@@ -11,6 +13,9 @@ mod palette_gen;
 mod persist;
 mod plugin;
 mod theme;
+
+use persist::{Config, Paths};
+use theme::Theme;
 
 #[derive(Debug, PartialEq, Eq, Clone, StructOpt)]
 #[structopt(name = "luthien")]
@@ -30,26 +35,36 @@ struct Opt {
     #[structopt(required_unless = "image")]
     theme: Option<PathBuf>,
 
+    /// Output file for the used theme.
+    #[structopt(short, long)]
+    output: Option<PathBuf>,
+
     /// Skip applying the theme.
     #[structopt(short = "s", long = "skip", parse(from_flag = std::ops::Not::not))]
     apply: bool,
 
-    /// Output file for the used theme.
-    #[structopt(short, long)]
-    output: Option<PathBuf>,
+    /// Don't cache the generated theme.
+    ///
+    /// The cached theme is labeled by the hash of its source image, so there are no problems with
+    /// changing filenames.
+    #[structopt(long = "no-cache", parse(from_flag = std::ops::Not::not))]
+    cache: bool,
 }
 
-fn get_theme(
-    opt: &Opt,
-    paths: &persist::Paths,
-    config: &persist::Config,
-) -> io::Result<theme::Theme> {
+fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::Theme> {
+    fn hash<T: Hash>(data: &T, _opt: &Opt) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+
+        let mut hasher = DefaultHasher::new();
+        data.hash(&mut hasher);
+
+        hasher.finish()
+    }
+
     if let Some(path) = &opt.theme {
         info!("Reading theme from filesystem.");
         paths.get_theme(path.clone())
     } else if let Some(path) = &opt.image {
-        info!("Generating theme from image.");
-
         trace!("Reading and decoding image.");
         let img = image::io::Reader::open(&path)?
             .with_guessed_format()?
@@ -57,31 +72,52 @@ fn get_theme(
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?
             .into_rgb8();
 
-        Ok(theme::Theme {
-            background: path.clone(),
-            colors: {
-                use palette::Srgb;
+        let cached_path = paths.cache.join(hash(&img, &opt).to_string());
 
-                trace!("Generating color palette.");
-                let generator = palette_gen::GenerationOpts::default();
-                generator.generate(
-                    img.par_chunks(3).map(|pix| {
-                        Srgb::from_components((
-                            pix[0] as f32 / 255.0,
-                            pix[1] as f32 / 255.0,
-                            pix[2] as f32 / 255.0,
-                        ))
-                    }),
-                    config.colors.map(Into::into),
-                )
-            },
-        })
+        if let Ok(Ok(theme)) = File::open(&cached_path).map(serde_json::from_reader::<File, Theme>)
+        {
+            info!("Using cached theme.");
+            Ok(theme)
+        } else {
+            info!("Generating theme from image.");
+            let theme = Theme {
+                background: path.clone(),
+                colors: {
+                    use palette::Srgb;
+
+                    trace!("Generating color palette.");
+                    let generator = palette_gen::GenerationOpts::default();
+                    generator.generate(
+                        img.par_chunks(3).map(|pix| {
+                            Srgb::from_components((
+                                pix[0] as f32 / 255.0,
+                                pix[1] as f32 / 255.0,
+                                pix[2] as f32 / 255.0,
+                            ))
+                        }),
+                        config.colors.map(Into::into),
+                    )
+                },
+            };
+
+            if opt.cache {
+                trace!("Caching generated theme.");
+                File::create(&cached_path)
+                    .map(|file| {
+                        serde_json::to_writer(file, &theme)
+                            .unwrap_or_else(|_| warn!("Failed to write theme to cache file."))
+                    })
+                    .unwrap_or_else(|_| error!("Failed to create theme cache file."));
+            }
+
+            Ok(theme)
+        }
     } else {
         unreachable!()
     }
 }
 
-fn run_plugins(config: &persist::Config, theme: theme::Theme) -> io::Result<()> {
+fn run_plugins(config: &Config, theme: Theme) -> io::Result<()> {
     use plugin::Plugin;
 
     fn get_pipe() -> ipipe::Result<ipipe::Pipe> {
@@ -120,6 +156,8 @@ fn main() -> io::Result<()> {
 
     trace!("Loading configuration.");
     let paths = persist::Paths::default();
+    paths.ensure_initialized()?;
+
     let config = paths.get_config()?;
 
     info!("Loading or generating theme.");
@@ -155,8 +193,9 @@ mod tests {
             Opt {
                 image: None,
                 theme: Some(PathBuf::from("theme.toml")),
-                apply: true,
                 output: None,
+                apply: true,
+                cache: true,
             }
         );
         assert_eq!(
@@ -164,8 +203,9 @@ mod tests {
             Opt {
                 image: Some(PathBuf::from("image.jpg")),
                 theme: None,
-                apply: true,
                 output: None,
+                apply: true,
+                cache: true,
             }
         );
         assert_eq!(
@@ -173,8 +213,9 @@ mod tests {
             Opt {
                 image: Some(PathBuf::from("image.jpg")),
                 theme: Some(PathBuf::from("theme.toml")),
-                apply: false,
                 output: None,
+                apply: false,
+                cache: true,
             }
         );
         assert_eq!(
@@ -190,8 +231,9 @@ mod tests {
             Opt {
                 image: Some(PathBuf::from("image.jpg")),
                 theme: Some(PathBuf::from("theme.toml")),
-                apply: false,
                 output: Some(PathBuf::from("output.toml")),
+                apply: false,
+                cache: true,
             }
         );
 

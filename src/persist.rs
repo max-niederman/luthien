@@ -14,6 +14,18 @@ pub struct Paths {
 }
 
 impl Paths {
+    pub fn ensure_initialized(&self) -> io::Result<()> {
+        fs::create_dir_all(&self.themes)?;
+        fs::create_dir_all(&self.cache)?;
+
+        if !self.config.exists() {
+            self.config.parent().map(fs::create_dir_all);
+            fs::write(&self.config, [])?;
+        }
+
+        Ok(())
+    }
+
     pub fn get_config(&self) -> io::Result<Config> {
         match fs::read(&self.config) {
             Ok(raw) => {
@@ -48,7 +60,9 @@ impl Default for Paths {
         Self {
             config: config_root.join("config.toml"),
             themes: config_root.join("themes"),
-            cache: dirs::cache_dir().expect("Couldn't find cache directory."),
+            cache: dirs::cache_dir()
+                .expect("Couldn't find cache directory.")
+                .join("luthien"),
         }
     }
 }
