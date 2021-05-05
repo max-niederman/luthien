@@ -31,35 +31,6 @@ impl<T: Default> Default for Palette<T> {
 }
 
 impl<T> Palette<T> {
-    pub fn uniform(v: T) -> Self
-    where
-        T: Clone,
-    {
-        Self {
-            black: v.clone(),
-            red: v.clone(),
-            green: v.clone(),
-            yellow: v.clone(),
-            blue: v.clone(),
-            purple: v.clone(),
-            cyan: v.clone(),
-            white: v,
-        }
-    }
-
-    pub fn zip<U>(self, other: Palette<U>) -> Palette<(T, U)> {
-        Palette {
-            black: (self.black, other.black),
-            red: (self.red, other.red),
-            green: (self.green, other.green),
-            yellow: (self.yellow, other.yellow),
-            blue: (self.blue, other.blue),
-            purple: (self.purple, other.purple),
-            cyan: (self.cyan, other.cyan),
-            white: (self.white, other.white),
-        }
-    }
-
     pub fn map<F, R>(self, mut f: F) -> Palette<R>
     where
         F: FnMut(T) -> R,
@@ -110,17 +81,15 @@ where
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Theme {
-    pub background: PathBuf,
+    pub wallpaper: Option<PathBuf>,
     pub colors: Palette<Srgb>,
 }
 
 impl fmt::Display for Theme {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(
-            f,
-            "Background Image: {}",
-            self.background.to_str().ok_or(fmt::Error)?
-        )?;
+        if let Some(bg) = &self.wallpaper {
+            writeln!(f, "Wallpaper: {}", bg.to_str().ok_or(fmt::Error)?)?;
+        }
         write!(f, "Color Palette: {}", self.colors)
     }
 }
@@ -133,7 +102,7 @@ mod tests {
 
     fn test_theme() -> Theme {
         Theme {
-            background: PathBuf::from("test.jpg"),
+            wallpaper: Some(PathBuf::from("test.jpg")),
             colors: Palette {
                 black: Srgb::new(0.0, 0.0, 0.0),
                 red: Srgb::new(1.0, 0.0, 0.0),
@@ -168,8 +137,8 @@ mod tests {
         assert_eq!(
             format!("{}", test_theme()),
             format!(
-                "Background Image: {}\nColor Palette: {}",
-                test_theme().background.to_str().unwrap(),
+                "Wallpaper: {}\nColor Palette: {}",
+                test_theme().wallpaper.unwrap().to_str().unwrap(),
                 test_theme().colors
             )
         )

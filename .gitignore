@@ -1,7 +1,8 @@
 # Rust
 /target
+Cargo.lock
 
 # Editor 
 /.vim
-.vimrc
-.nvimrc
+/.vimrc
+/.nvimrc

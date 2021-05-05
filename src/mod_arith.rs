@@ -3,16 +3,12 @@ use std::ops;
 
 #[derive(Clone, Copy)]
 pub struct Space<M> {
-    modulus: M,
+    pub modulus: M,
 }
 
 impl<M> Space<M> {
     pub const fn new(modulus: M) -> Self {
         Self { modulus }
-    }
-
-    pub fn modulus(&self) -> &M {
-        &self.modulus
     }
 
     pub fn modulo<N>(&self, n: N) -> N
@@ -21,15 +17,6 @@ impl<M> Space<M> {
         N: ops::Add<M, Output = N> + ops::Rem<M, Output = N>,
     {
         ((n % self.modulus) + self.modulus) % self.modulus
-    }
-
-    pub fn sub<N>(&self, n1: N, n2: N) -> N
-    where
-        M: Copy,
-        N: ops::Sub,
-        <N as ops::Sub>::Output: ops::Rem<M, Output = N>,
-    {
-        (n1 - n2) % self.modulus
     }
 
     pub fn dist<N>(&self, n1: N, n2: N) -> N

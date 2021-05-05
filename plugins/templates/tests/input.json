@@ -1,0 +1,19 @@
+{
+  "theme": {
+    "wallpaper": "test.jpg",
+    "colors": {
+      "black": { "red": 1.0, "green": 1.0, "blue": 1.0 },
+      "red": { "red": 1.0, "green": 1.0, "blue": 1.0 },
+      "green": { "red": 1.0, "green": 1.0, "blue": 1.0 },
+      "yellow": { "red": 1.0, "green": 1.0, "blue": 1.0 },
+      "blue": { "red": 1.0, "green": 1.0, "blue": 1.0 },
+      "purple": { "red": 1.0, "green": 1.0, "blue": 1.0 },
+      "cyan": { "red": 1.0, "green": 1.0, "blue": 1.0 },
+      "white": { "red": 1.0, "green": 1.0, "blue": 1.0 }
+    }
+  },
+  "options": {
+    "template_dir": "tests/templates",
+    "output_dir": "tests/out"
+  }
+}

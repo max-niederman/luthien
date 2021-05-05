@@ -1,0 +1,18 @@
+:root {
+    /* Wallpaper Image */
+    --wallpaper: url(test.jpg);
+
+    /* Special */
+    --background: #ffffff;
+    --foreground: #ffffff;
+
+    /* Palette */
+    --black: #ffffff;
+    --red: #ffffff;
+    --green: #ffffff;
+    --yellow: #ffffff;
+    --blue: #ffffff;
+    --purple: #ffffff;
+    --cyan: #ffffff;
+    --white: #ffffff;
+}

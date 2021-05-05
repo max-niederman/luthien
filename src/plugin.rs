@@ -2,8 +2,9 @@ use crate::persist::PluginConfig;
 use crate::theme::Theme;
 use log::trace;
 use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, ExitStatus, Stdio};
 
 /// Data provided to the plugin process through its stdin
@@ -15,11 +16,16 @@ pub struct PluginInput {
 }
 
 pub trait Plugin {
-    fn run(&self, theme: Theme, stdio_pipe: Option<&Path>) -> io::Result<ExitStatus>;
+    fn run<P>(&self, theme: Theme, stdio_pipe: Option<P>) -> io::Result<ExitStatus>
+    where
+        P: AsRef<OsStr>;
 }
 
 impl Plugin for PluginConfig {
-    fn run(&self, theme: Theme, stdin_pipe: Option<&Path>) -> io::Result<ExitStatus> {
+    fn run<P>(&self, theme: Theme, stdin_pipe: Option<P>) -> io::Result<ExitStatus>
+    where
+        P: AsRef<OsStr>,
+    {
         trace!("Spawning plugin process: {:?}", self.executable);
         let mut child = Command::new(&self.executable)
             .args(&self.args)
@@ -36,7 +42,7 @@ impl Plugin for PluginConfig {
                 .ok_or_else(|| io::Error::from(io::ErrorKind::BrokenPipe))?,
             &PluginInput {
                 options: self.options.clone(),
-                pipe: stdin_pipe.map(PathBuf::from),
+                pipe: stdin_pipe.as_ref().map(PathBuf::from),
                 theme,
             },
         )?;

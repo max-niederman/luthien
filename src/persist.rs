@@ -14,6 +14,11 @@ pub struct Paths {
 }
 
 impl Paths {
+    pub fn set_config(&mut self, path: PathBuf) -> &mut Self {
+        self.config = path;
+        self
+    }
+
     pub fn ensure_initialized(&self) -> io::Result<()> {
         fs::create_dir_all(&self.themes)?;
         fs::create_dir_all(&self.cache)?;

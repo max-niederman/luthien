@@ -1,8 +1,9 @@
 use log::{error, info, trace, warn};
 use rayon::prelude::*;
-use std::fs::{self, File};
+use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io;
+use std::iter::{self, FromIterator};
 use std::path::PathBuf;
 use std::thread;
 use structopt::StructOpt;
@@ -20,6 +21,13 @@ use theme::Theme;
 #[derive(Debug, PartialEq, Eq, Clone, StructOpt)]
 #[structopt(name = "luthien")]
 struct Opt {
+    /// Base theme to use.
+    ///
+    /// This argument is required unless the image option is given, in which case the theme
+    /// will be derived from the image.
+    #[structopt(required_unless = "image")]
+    theme: Option<PathBuf>,
+
     /// Image to use for theming.
     ///
     /// If colors are specified, the image will be recolored with those colors (not yet
@@ -28,16 +36,12 @@ struct Opt {
     #[structopt(short, long)]
     image: Option<PathBuf>,
 
-    /// Base theme to use.
-    ///
-    /// This argument is required unless the image option is given, in which case the theme
-    /// will be derived from the image.
-    #[structopt(required_unless = "image")]
-    theme: Option<PathBuf>,
-
     /// Output file for the used theme.
     #[structopt(short, long)]
     output: Option<PathBuf>,
+
+    #[structopt(short, long)]
+    config: Option<PathBuf>,
 
     /// Skip applying the theme.
     #[structopt(short = "s", long = "skip", parse(from_flag = std::ops::Not::not))]
@@ -51,6 +55,18 @@ struct Opt {
     cache: bool,
 }
 
+impl Opt {
+    fn get_paths(&self) -> Paths {
+        let mut paths = Paths::default();
+
+        if let Some(path) = &self.config {
+            paths.set_config(path.clone());
+        }
+
+        paths
+    }
+}
+
 fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::Theme> {
     fn hash<T: Hash>(data: &T, _opt: &Opt) -> u64 {
         use std::collections::hash_map::DefaultHasher;
@@ -62,10 +78,10 @@ fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::The
     }
 
     if let Some(path) = &opt.theme {
-        info!("Reading theme from filesystem.");
+        info!("Reading theme from filesystemg...");
         paths.get_theme(path.clone())
     } else if let Some(path) = &opt.image {
-        trace!("Reading and decoding image.");
+        trace!("Reading and decoding image...");
         let img = image::io::Reader::open(&path)?
             .with_guessed_format()?
             .decode()
@@ -76,16 +92,16 @@ fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::The
 
         if let Ok(Ok(theme)) = File::open(&cached_path).map(serde_json::from_reader::<File, Theme>)
         {
-            info!("Using cached theme.");
+            info!("Cache hit; using cached theme...");
             Ok(theme)
         } else {
-            info!("Generating theme from image.");
+            info!("Cache missed; generating theme from image...");
             let theme = Theme {
-                background: path.clone(),
+                wallpaper: Some(path.clone()),
                 colors: {
                     use palette::Srgb;
 
-                    trace!("Generating color palette.");
+                    trace!("Generating color palette...");
                     let generator = palette_gen::GenerationOpts::default();
                     generator.generate(
                         img.par_chunks(3).map(|pix| {
@@ -117,6 +133,31 @@ fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::The
     }
 }
 
+fn normalize_plugins(paths: &Paths, config: &mut Config) {
+    for pl in config.plugins.iter_mut() {
+        if pl.executable.iter().next() == Some("~".as_ref()) {
+            pl.executable = PathBuf::from_iter(
+                iter::once(
+                    dirs::home_dir()
+                        .ok_or_else(std::env::current_dir)
+                        .expect("Couldn't expand tilde (~) in plugin executable path."),
+                )
+                .chain(pl.executable.iter().skip(1).map(PathBuf::from)),
+            );
+        }
+
+        if pl.executable.is_relative() {
+            pl.executable = paths
+                .config
+                .parent()
+                .map(PathBuf::from)
+                .or_else(dirs::home_dir)
+                .unwrap_or_else(PathBuf::new)
+                .join(pl.executable.clone());
+        }
+    }
+}
+
 fn run_plugins(config: &Config, theme: Theme) -> io::Result<()> {
     use plugin::Plugin;
 
@@ -130,7 +171,13 @@ fn run_plugins(config: &Config, theme: Theme) -> io::Result<()> {
     thread::spawn(|| io::copy(&mut get_pipe()?, &mut io::stdout()));
 
     for pl in config.plugins.iter() {
-        let status = pl.run(theme.clone(), Some(get_pipe()?.path()))?;
+        let status = pl.run(
+            theme.clone(),
+            get_pipe()
+                .map(|p| p.path().to_path_buf())
+                .map_err(|_| warn!("Failed to get a named pipe for the plugin."))
+                .ok(),
+        )?;
         let name = pl
             .executable
             .file_name()
@@ -151,29 +198,30 @@ fn run_plugins(config: &Config, theme: Theme) -> io::Result<()> {
 fn main() -> io::Result<()> {
     pretty_env_logger::init();
 
-    trace!("Parsing opts.");
+    trace!("Parsing opts...");
     let opt = Opt::from_args();
 
-    trace!("Loading configuration.");
-    let paths = persist::Paths::default();
+    trace!("Loading configuration...");
+    let paths = opt.get_paths();
     paths.ensure_initialized()?;
 
-    let config = paths.get_config()?;
+    let mut config = paths.get_config()?;
+    normalize_plugins(&paths, &mut config);
 
-    info!("Loading or generating theme.");
+    info!("Getting theme...");
     let theme = get_theme(&opt, &paths, &config)?;
 
-    info!("Theme generated:\n{}", theme);
+    info!("Theme Preview:\n{}", theme);
 
     if let Some(out) = opt.output {
-        info!("Writing theme to output.");
+        info!("Writing theme to output...");
         std::fs::write(
             out,
             toml::to_string_pretty(&theme).expect("Error serializing theme."),
         )?;
     }
 
-    info!("Running plugins.");
+    info!("Running plugins...");
     run_plugins(&config, theme)?;
 
     Ok(())
@@ -194,6 +242,7 @@ mod tests {
                 image: None,
                 theme: Some(PathBuf::from("theme.toml")),
                 output: None,
+                config: None,
                 apply: true,
                 cache: true,
             }
@@ -204,6 +253,7 @@ mod tests {
                 image: Some(PathBuf::from("image.jpg")),
                 theme: None,
                 output: None,
+                config: None,
                 apply: true,
                 cache: true,
             }
@@ -214,6 +264,7 @@ mod tests {
                 image: Some(PathBuf::from("image.jpg")),
                 theme: Some(PathBuf::from("theme.toml")),
                 output: None,
+                config: None,
                 apply: false,
                 cache: true,
             }
@@ -232,6 +283,7 @@ mod tests {
                 image: Some(PathBuf::from("image.jpg")),
                 theme: Some(PathBuf::from("theme.toml")),
                 output: Some(PathBuf::from("output.toml")),
+                config: None,
                 apply: false,
                 cache: true,
             }
