@@ -4,12 +4,6 @@ version = "0.1.0"
 authors = ["Max Niederman <max@maxniederman.com>"]
 edition = "2018"
 
-[profile.release]
-debug = true
-
-[profile.bench]
-debug = true
-
 [dependencies]
 palette = { version = "0.5", default-features = false, features = ["serializing"] }
 image =  "0.23" 
