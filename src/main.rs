@@ -78,7 +78,7 @@ fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::The
     }
 
     if let Some(path) = &opt.theme {
-        info!("Reading theme from filesystemg...");
+        info!("Reading theme from filesystem...");
         paths.get_theme(path.clone())
     } else if let Some(path) = &opt.image {
         trace!("Reading and decoding image...");
@@ -191,6 +191,9 @@ fn run_plugins(config: &Config, theme: Theme) -> io::Result<()> {
             error!("Plugin {} exited with a non-zero error code.", name);
         }
     }
+
+    // Delete pipe by implicitly dropping it.
+    get_pipe()?;
 
     Ok(())
 }

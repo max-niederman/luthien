@@ -19,26 +19,15 @@ impl<M> Space<M> {
         ((n % self.modulus) + self.modulus) % self.modulus
     }
 
-    pub fn dist<N>(&self, n1: N, n2: N) -> N
+    pub fn dist_pos<N>(&self, n1: N, n2: N) -> N
     where
         M: Copy,
         N: Copy
-            + PartialOrd
-            + Signed
             + ops::Sub<Output = N>
-            + ops::Sub<M, Output = N>
             + ops::Rem<M, Output = N>
             + ops::Add<M, Output = N>,
     {
-        let p = self.modulo(n2 - n1);
-        let n = p - self.modulus;
-
-        // once it's stabilized, we can use `std::cmp::min_by_key`
-        if n.abs() < p.abs() {
-            n
-        } else {
-            p
-        }
+        (self.modulo(n2) + self.modulus - self.modulo(n1)) % self.modulus
     }
 
     pub fn range<N>(&self, start: N, end: N) -> Range<M, N>
@@ -54,12 +43,11 @@ impl<M> Space<M> {
 pub struct Range<M, N>
 where
     M: Copy,
-    N: PartialOrd + ops::Sub,
-    <N as ops::Sub>::Output: Copy,
+    N: PartialOrd,
 {
     pub space: Space<M>,
     start: N,
-    length: <N as ops::Sub>::Output,
+    length: N,
 }
 
 impl<M, N> Range<M, N>
@@ -70,20 +58,15 @@ where
     pub fn new(space: Space<M>, start: N, end: N) -> Self {
         Self {
             space,
-            length: space.dist(start, end),
             start: space.modulo(start),
+            length: space.dist_pos(start, end),
         }
     }
 
     pub fn contains(&self, n: N) -> bool {
         let n = self.space.modulo(n);
-        let d = self.space.dist(self.start, n);
-
-        if self.length.is_negative() {
-            !d.is_positive() && d >= self.length
-        } else {
-            !d.is_negative() && d <= self.length
-        }
+        
+        self.length.is_zero() || self.space.dist_pos(self.start, n) <= self.length
     }
 }
 
@@ -105,18 +88,18 @@ mod tests {
     fn modular_distance() {
         let space = Space::new(10);
 
-        assert_eq!(space.dist(2, 1), -1);
-        assert_eq!(space.dist(1, 2), 1);
+        assert_eq!(space.dist_pos(2, 1), 9);
+        assert_eq!(space.dist_pos(1, 2), 1);
 
-        assert_eq!(space.dist(9, 1), 2);
-        assert_eq!(space.dist(1, 9), -2);
+        assert_eq!(space.dist_pos(9, 1), 2);
+        assert_eq!(space.dist_pos(1, 9), 8);
 
-        assert_eq!(space.dist(1, 1), 0);
-        assert_eq!(space.dist(10, 0), 0);
-        assert_eq!(space.dist(20, 0), 0);
-        assert_eq!(space.dist(1, -9), 0);
+        assert_eq!(space.dist_pos(1, 1), 0);
+        assert_eq!(space.dist_pos(10, 0), 0);
+        assert_eq!(space.dist_pos(20, 0), 0);
+        assert_eq!(space.dist_pos(1, -9), 0);
 
-        assert_eq!(space.dist(22, 1), -1);
+        assert_eq!(space.dist_pos(22, 1), 9);
     }
 
     #[test]
@@ -138,5 +121,10 @@ mod tests {
         let range = Range::new(Space::new(360), 270, 90);
         assert!(!range.contains(180));
         assert!(range.contains(0));
+
+        let range = Range::new(Space::new(360), 0, 360);
+        assert!(range.contains(0));
+        assert!(range.contains(180));
+        assert!(range.contains(360));
     }
 }

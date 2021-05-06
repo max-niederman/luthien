@@ -1,7 +1,7 @@
-use std::process::{Command, Stdio};
-use std::path::Path;
-use std::io;
 use std::fs;
+use std::io;
+use std::path::Path;
+use std::process::{Command, Stdio};
 
 #[test]
 #[allow(unused_must_use)]
@@ -13,14 +13,17 @@ fn integrate() {
         .stderr(Stdio::piped())
         .spawn()
         .expect("Failed to spawn luthien-templates process.");
-    io::copy(&mut fs::File::open("tests/input.json").expect("Couldn't find test input."), &mut proc.stdin.take().unwrap()).expect("Error copying test input.");
+    io::copy(
+        &mut fs::File::open("tests/input.json").expect("Couldn't find test input."),
+        &mut proc.stdin.take().unwrap(),
+    )
+    .expect("Error copying test input.");
 
     // Check standard output
-    let out = proc.wait_with_output().expect("Failed to wait on luthien-templates process.");
-    assert_eq!(
-        std::str::from_utf8(&out.stdout).unwrap(),
-        "",
-    );
+    let out = proc
+        .wait_with_output()
+        .expect("Failed to wait on luthien-templates process.");
+    assert_eq!(std::str::from_utf8(&out.stdout).unwrap(), "",);
     assert_eq!(
         std::str::from_utf8(&out.stderr).unwrap(),
         "Successfully rendered 1/1 templates.\n",
