@@ -11,13 +11,26 @@
 //! Luthien provides a named pipe which copies to and from its stdout and stdin respectively.
 //! `luthien-plugin` can automatically get this pipe for you.
 
-use ipipe::{OnCleanup, Pipe};
 use serde::{Deserialize, Serialize};
-use std::io;
 use std::path::PathBuf;
 
-pub use ipipe;
+#[cfg(feature = "io")]
+pub mod io;
+
+#[cfg(feature = "palette")]
 pub use palette;
+
+#[cfg(not(feature = "palette"))]
+pub mod palette {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct Srgb<T = f32> {
+        pub red: T,
+        pub green: T,
+        pub blue: T,
+    }
+}
 
 /// Colored palette of generic data.
 ///
@@ -99,21 +112,11 @@ pub struct Input {
     pipe: Option<PathBuf>,
 }
 
-impl Input {
-    /// Get an [`ipipe::Pipe`] which can be used to read input and print output to the parent
-    /// Luthien process.
-    pub fn io(&self) -> Option<ipipe::Result<Pipe>> {
-        self.pipe
-            .as_ref()
-            .map(|path| Pipe::open(path, OnCleanup::NoDelete))
-    }
-}
-
 /// Get the plugin's input.
 ///
 /// ## Panics
 /// Panics when [`serde_json`] is unable to deserialize the input, presumably because it was
 /// incorrect.
 pub fn get_input() -> Input {
-    serde_json::from_reader(&mut io::stdin()).unwrap()
+    serde_json::from_reader(&mut std::io::stdin()).unwrap()
 }

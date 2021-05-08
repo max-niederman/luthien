@@ -96,8 +96,8 @@ impl From<RegionConfig> for color::Region<f32> {
 
 impl Default for theme::Palette<RegionConfig> {
     fn default() -> Self {
-        const PRIMARY_SAT: (f32, f32) = (0.1, 1.0);
-        const PRIMARY_LIGHTNESS: (f32, f32) = (0.3, 0.8);
+        const PRIMARY_SAT: (f32, f32) = (0.0, 1.0);
+        const PRIMARY_LIGHTNESS: (f32, f32) = (0.2, 0.8);
         Self {
             black: RegionConfig {
                 hue: (0.0, 360.0),

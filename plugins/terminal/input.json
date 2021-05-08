@@ -1,0 +1,16 @@
+{
+  "theme": {
+    "wallpaper": "test.jpg",
+    "colors": {
+      "black": { "red": 0.0, "green": 0.0, "blue": 0.0 },
+      "red": { "red": 1.0, "green": 0.0, "blue": 0.0 },
+      "green": { "red": 0.0, "green": 1.0, "blue": 0.0 },
+      "yellow": { "red": 1.0, "green": 1.0, "blue": 0.0 },
+      "blue": { "red": 0.0, "green": 0.0, "blue": 1.0 },
+      "purple": { "red": 1.0, "green": 0.0, "blue": 1.0 },
+      "cyan": { "red": 0.0, "green": 1.0, "blue": 1.0 },
+      "white": { "red": 1.0, "green": 1.0, "blue": 1.0 }
+    }
+  },
+  "options": null
+}

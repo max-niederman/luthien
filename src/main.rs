@@ -178,17 +178,11 @@ fn run_plugins(config: &Config, theme: Theme) -> io::Result<()> {
                 .map_err(|_| warn!("Failed to get a named pipe for the plugin."))
                 .ok(),
         )?;
-        let name = pl
-            .executable
-            .file_name()
-            .unwrap_or_else(|| pl.executable.as_os_str())
-            .to_str()
-            .unwrap();
 
         if status.success() {
-            info!("Plugin {} exited successfully.", name);
+            info!("Plugin {} exited successfully.", pl.name().to_string_lossy());
         } else {
-            error!("Plugin {} exited with a non-zero error code.", name);
+            error!("Plugin {} exited with a non-zero error code.", pl.name().to_string_lossy());
         }
     }
 

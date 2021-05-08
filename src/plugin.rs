@@ -19,6 +19,8 @@ pub trait Plugin {
     fn run<P>(&self, theme: Theme, stdio_pipe: Option<P>) -> io::Result<ExitStatus>
     where
         P: AsRef<OsStr>;
+
+    fn name(&self) -> &OsStr;
 }
 
 impl Plugin for PluginConfig {
@@ -49,5 +51,9 @@ impl Plugin for PluginConfig {
 
         trace!("Waiting for plugin to finish executing.");
         child.wait()
+    }
+
+    fn name(&self) -> &OsStr {
+        self.executable.file_stem().or_else(|| self.executable.file_name()).unwrap_or_else(|| self.executable.as_ref())
     }
 }

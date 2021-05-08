@@ -4,8 +4,12 @@ version = "0.1.0"
 authors = ["Max Niederman <max@maxniederman.com>"]
 edition = "2018"
 
+[features]
+default = ["io"]
+io = ["ipipe"]
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-palette = { version = "0.5", default-features = false, features = ["serializing"] }
-ipipe = "0.8"
+palette = { version = "0.5", default-features = false, features = ["serializing"], optional = true }
+ipipe = { version = "0.8", optional = true }

@@ -269,6 +269,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "luthien-pts"
+version = "0.1.0"
+dependencies = [
+ "luthien-plugin",
+]
+
+[[package]]
 name = "luthien-templates"
 version = "0.1.0"
 dependencies = [

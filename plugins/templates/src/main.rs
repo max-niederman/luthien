@@ -103,5 +103,6 @@ fn main() -> error::Result<()> {
         "Successfully rendered {}/{} templates.",
         template_count.0, template_count.1
     );
+
     Ok(())
 }
