@@ -48,16 +48,15 @@ impl<T> Palette<T> {
     }
 }
 
-// FIXME: For some reason this is totally incorrect.
 impl<T> fmt::Display for Palette<T>
 where
     T: IntoColor + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fn color_block<T: IntoColor>(col: T) -> impl fmt::Display {
+        fn color_block<T: IntoColor + Clone>(col: T) -> impl fmt::Display {
             use colored::*;
 
-            let col = col.into_rgb::<palette::encoding::Srgb>();
+            let col = col.into_rgb::<palette::encoding::Srgb>().into_encoding::<palette::encoding::Srgb>();
             "  ".on_truecolor(
                 (col.red * 0xFF as f32) as u8,
                 (col.green * 0xFF as f32) as u8,
