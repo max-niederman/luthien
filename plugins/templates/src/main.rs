@@ -6,58 +6,20 @@ use error::Error;
 use handlebars::Handlebars;
 use std::ffi::OsStr;
 use std::fs;
-use std::path::PathBuf;
 
-struct Paths {
-    templates: PathBuf,
-    output: PathBuf,
+trait Environment {
+    fn render_template(&self, name: &OsStr, hb: &Handlebars, ctx: &handlebars::Context) -> error::Result<()>;
+    fn render_all_templates(&self, hb: &Handlebars, ctx: &handlebars::Context) -> error::Result<(usize, usize)>;
 }
 
-impl From<&luthien_plugin::Input> for Paths {
-    fn from(input: &luthien_plugin::Input) -> Self {
-        Self {
-            templates: input
-                        .options
-                        .get("template_dir")
-                        .map(serde_json::Value::as_str)
-                        .flatten()
-                        .map(PathBuf::from)
-                        .unwrap_or_else(
-                            || dirs::config_dir()
-                                        .expect("Couldn't find the luthien config directory. Please specify the template directory manually.")
-                                        .join("luthien")
-                                        .join("templates")
-                        ),
-            output: input
-                        .options
-                        .get("output_dir")
-                        .map(serde_json::Value::as_str)
-                        .flatten()
-                        .map(PathBuf::from)
-                        .unwrap_or_else(
-                            || dirs::cache_dir()
-                                        .expect("Couldn't find the user cache directory. Please specify the output directory manually.")
-                                        .join("luthien")
-                                        .join("templates")
-                        ),
-        }
-    }
-}
-
-impl Paths {
-    fn ensure_initialized(&self) -> error::Result<()> {
-        fs::create_dir_all(&self.templates)?;
-        fs::create_dir_all(&self.output)?;
-        Ok(())
-    }
-
+impl Environment for luthien_plugin::Directories {
     fn render_template(
         &self,
         name: &OsStr,
         hb: &Handlebars,
         ctx: &handlebars::Context,
     ) -> error::Result<()> {
-        let template = fs::read_to_string(self.templates.join(name))?;
+        let template = fs::read_to_string(self.config.join(name))?;
         let rendered = hb.render_template_with_context(&template, ctx)?;
         fs::write(self.output.join(name), rendered)?;
         Ok(())
@@ -70,7 +32,7 @@ impl Paths {
     ) -> error::Result<(usize, usize)> {
         let mut count = (0, 0);
 
-        for entry in fs::read_dir(&self.templates)? {
+        for entry in fs::read_dir(&self.config)? {
             let entry = entry?;
             match self.render_template(&entry.file_name(), hb, ctx) {
                 Ok(_) => count.0 += 1,
@@ -90,14 +52,11 @@ impl Paths {
 
 fn main() -> error::Result<()> {
     let input = luthien_plugin::get_input();
+    let env = input.directories;
     let data = serde_json::to_value(Data::from(input.theme.clone()))
         .expect("Failed to transform plugin input to template data.");
-    let paths = Paths::from(&input);
 
-    paths.ensure_initialized()?;
-
-    let template_count =
-        paths.render_all_templates(&Handlebars::new(), &handlebars::Context::wraps(data)?)?;
+    let template_count = env.render_all_templates(&Handlebars::new(), &handlebars::Context::wraps(data)?)?;
 
     eprintln!(
         "Successfully rendered {}/{} templates.",

@@ -43,7 +43,7 @@ struct Opt {
     #[structopt(short, long)]
     config: Option<PathBuf>,
 
-    /// Skip applying the theme.
+    /// Skip running plugins.
     #[structopt(short = "s", long = "skip", parse(from_flag = std::ops::Not::not))]
     apply: bool,
 
@@ -171,18 +171,24 @@ fn run_plugins(config: &Config, theme: Theme) -> io::Result<()> {
     thread::spawn(|| io::copy(&mut get_pipe()?, &mut io::stdout()));
 
     for pl in config.plugins.iter() {
-        let status = pl.run(
+        match pl.run(
             theme.clone(),
             get_pipe()
                 .map(|p| p.path().to_path_buf())
                 .map_err(|_| warn!("Failed to get a named pipe for the plugin."))
                 .ok(),
-        )?;
-
-        if status.success() {
-            info!("Plugin {} exited successfully.", pl.name().to_string_lossy());
-        } else {
-            error!("Plugin {} exited with a non-zero error code.", pl.name().to_string_lossy());
+        ) {
+            Ok(status) => {
+                if status.success() {
+                    info!("Plugin {} exited successfully.", pl.name());
+                } else {
+                    error!("Plugin {} exited with a non-zero error code.", pl.name());
+                }
+            }
+            Err(_) => {
+                // TODO: Add descriptive error message
+                error!("Failed to run plugin {}.", pl.name());
+            }
         }
     }
 
@@ -212,14 +218,13 @@ fn main() -> io::Result<()> {
 
     if let Some(out) = opt.output {
         info!("Writing theme to output...");
-        std::fs::write(
-            out,
-            toml::to_string_pretty(&theme).expect("Error serializing theme."),
-        )?;
+        serde_json::to_writer_pretty(std::fs::File::create(out)?, &theme)?;
     }
 
-    info!("Running plugins...");
-    run_plugins(&config, theme)?;
+    if opt.apply {
+        info!("Running plugins...");
+        run_plugins(&config, theme)?;
+    }
 
     Ok(())
 }
@@ -274,6 +279,7 @@ mod tests {
                 "image.jpg",
                 "--output",
                 "output.toml",
+                "--no-cache",
                 "theme.toml"
             ]),
             Opt {
@@ -282,7 +288,7 @@ mod tests {
                 output: Some(PathBuf::from("output.toml")),
                 config: None,
                 apply: false,
-                cache: true,
+                cache: false,
             }
         );
 

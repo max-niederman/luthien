@@ -22,10 +22,7 @@ impl<M> Space<M> {
     pub fn dist_pos<N>(&self, n1: N, n2: N) -> N
     where
         M: Copy,
-        N: Copy
-            + ops::Sub<Output = N>
-            + ops::Rem<M, Output = N>
-            + ops::Add<M, Output = N>,
+        N: Copy + ops::Sub<Output = N> + ops::Rem<M, Output = N> + ops::Add<M, Output = N>,
     {
         (self.modulo(n2) + self.modulus - self.modulo(n1)) % self.modulus
     }
@@ -65,7 +62,7 @@ where
 
     pub fn contains(&self, n: N) -> bool {
         let n = self.space.modulo(n);
-        
+
         self.length.is_zero() || self.space.dist_pos(self.start, n) <= self.length
     }
 }

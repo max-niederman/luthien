@@ -146,6 +146,7 @@ impl Default for theme::Palette<RegionConfig> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PluginConfig {
     pub executable: PathBuf,
+    pub name: Option<String>,
 
     #[serde(default)]
     pub args: Vec<String>,

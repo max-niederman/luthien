@@ -1,4 +1,12 @@
 {
+  "name": "templates",
+  "directories": {
+    "config": "tests/templates",
+    "output": "tests/out",
+    "cache": "",
+    "data": ""
+  },
+  "options": null,
   "theme": {
     "wallpaper": "test.jpg",
     "colors": {
@@ -11,9 +19,5 @@
       "cyan": { "red": 1.0, "green": 1.0, "blue": 1.0 },
       "white": { "red": 1.0, "green": 1.0, "blue": 1.0 }
     }
-  },
-  "options": {
-    "template_dir": "tests/templates",
-    "output_dir": "tests/out"
   }
 }

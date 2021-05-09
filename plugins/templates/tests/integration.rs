@@ -5,7 +5,10 @@ use std::process::{Command, Stdio};
 
 #[test]
 #[allow(unused_must_use)]
-fn integrate() {
+fn integrate()  {
+    fs::remove_dir_all("tests/out"); // In case the test failed before it could clean up.
+    fs::create_dir("tests/out").unwrap();
+
     // Run
     let mut proc = Command::new(env!("CARGO_BIN_EXE_luthien-templates"))
         .stdin(Stdio::piped())

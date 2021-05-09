@@ -75,6 +75,11 @@ fn main() -> io::Result<()> {
 
     let sequence = input.theme.sequence();
 
+    fs::write(
+        input.directories.output.join("sequences"),
+        &sequence,
+    )?;
+
     let mut count = 0;
     for entry in fs::read_dir("/dev/pts")? {
         let entry = entry?;

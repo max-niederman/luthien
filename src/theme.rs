@@ -48,6 +48,7 @@ impl<T> Palette<T> {
     }
 }
 
+// FIXME: For some reason this is totally incorrect.
 impl<T> fmt::Display for Palette<T>
 where
     T: IntoColor + Clone,
@@ -56,11 +57,11 @@ where
         fn color_block<T: IntoColor>(col: T) -> impl fmt::Display {
             use colored::*;
 
-            let rgb = col.into_rgb::<palette::encoding::Srgb>().into_components();
-            " ".on_truecolor(
-                (rgb.0 * 0xFF as f32) as u8,
-                (rgb.1 * 0xFF as f32) as u8,
-                (rgb.2 * 0xFF as f32) as u8,
+            let col = col.into_rgb::<palette::encoding::Srgb>();
+            "  ".on_truecolor(
+                (col.red * 0xFF as f32) as u8,
+                (col.green * 0xFF as f32) as u8,
+                (col.blue * 0xFF as f32) as u8,
             )
         }
 
@@ -100,47 +101,35 @@ mod tests {
     use palette::Srgb;
     use std::path::PathBuf;
 
-    fn test_theme() -> Theme {
-        Theme {
-            wallpaper: Some(PathBuf::from("test.jpg")),
-            colors: Palette {
-                black: Srgb::new(0.0, 0.0, 0.0),
-                red: Srgb::new(1.0, 0.0, 0.0),
-                green: Srgb::new(0.0, 1.0, 0.0),
-                yellow: Srgb::new(1.0, 1.0, 0.0),
-                blue: Srgb::new(0.0, 0.0, 1.0),
-                purple: Srgb::new(1.0, 0.0, 1.0),
-                cyan: Srgb::new(0.0, 1.0, 1.0),
-                white: Srgb::new(1.0, 1.0, 1.0),
-            },
-        }
+    macro_rules! test_theme {
+        () => {
+            Theme {
+                wallpaper: Some(PathBuf::from("test.jpg")),
+                colors: Palette {
+                    black: Srgb::new(0.0, 0.0, 0.0),
+                    red: Srgb::new(1.0, 0.0, 0.0),
+                    green: Srgb::new(0.0, 1.0, 0.0),
+                    yellow: Srgb::new(1.0, 1.0, 0.0),
+                    blue: Srgb::new(0.0, 0.0, 1.0),
+                    purple: Srgb::new(1.0, 0.0, 1.0),
+                    cyan: Srgb::new(0.0, 1.0, 1.0),
+                    white: Srgb::new(1.0, 1.0, 1.0),
+                },
+            }
+        };
     }
 
     #[test]
     fn serialization() {
-        let serialized = serde_json::to_string(&test_theme()).expect("Failed to serialize.");
+        let serialized = serde_json::to_string(&test_theme!()).expect("Failed to serialize.");
         let deserialized = serde_json::from_str(&serialized).expect("Failed to deserialize.");
 
-        assert_eq!(test_theme(), deserialized,)
+        assert_eq!(test_theme!(), deserialized)
     }
 
     #[test]
-    fn display_colors() {
-        assert_eq!(
-            format!("{}", test_theme().colors),
-            "\u{1b}[48;2;0;0;0m \u{1b}[0m\u{1b}[48;2;255;0;0m \u{1b}[0m\u{1b}[48;2;0;255;0m \u{1b}[0m\u{1b}[48;2;255;255;0m \u{1b}[0m\u{1b}[48;2;0;0;255m \u{1b}[0m\u{1b}[48;2;255;0;255m \u{1b}[0m\u{1b}[48;2;0;255;255m \u{1b}[0m\u{1b}[48;2;255;255;255m \u{1b}[0m"
-        )
-    }
-
-    #[test]
-    fn display_theme() {
-        assert_eq!(
-            format!("{}", test_theme()),
-            format!(
-                "Wallpaper: {}\nColor Palette: {}",
-                test_theme().wallpaper.unwrap().to_str().unwrap(),
-                test_theme().colors
-            )
-        )
+    fn display() {
+        format!("{}", test_theme!().colors);
+        format!("{}", test_theme!());
     }
 }

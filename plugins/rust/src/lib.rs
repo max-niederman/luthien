@@ -17,6 +17,8 @@ use std::path::PathBuf;
 #[cfg(feature = "io")]
 pub mod io;
 
+pub use serde_json;
+
 #[cfg(feature = "palette")]
 pub use palette;
 
@@ -24,7 +26,7 @@ pub use palette;
 pub mod palette {
     use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     pub struct Srgb<T = f32> {
         pub red: T,
         pub green: T,
@@ -36,7 +38,7 @@ pub mod palette {
 ///
 /// Here, this is only used for [`palette::Srgb`], but it can also be used to further process the
 /// given colors.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Palette<T> {
     pub black: T,
     pub red: T,
@@ -98,25 +100,46 @@ impl<T> Palette<T> {
 }
 
 /// Represents the theme which is passed to the plugin.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Theme {
     pub wallpaper: Option<PathBuf>,
     pub colors: Palette<palette::Srgb>,
 }
 
+/// Represents the directories which plugins can store and output data.
+///
+/// These directories are guarunteed to exist and are exclusive to each plugin.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Directories {
+    /// For user configuration of the plugin.
+    pub config: PathBuf,
+    /// For plugin outputs.
+    pub output: PathBuf,
+    /// For cached reproducible data.
+    pub cache: PathBuf,
+    /// For miscellaneous plugin data.
+    pub data: PathBuf,
+}
+
 /// Represents the data givent to the plugin.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Input {
-    pub theme: Theme,
-    pub options: serde_json::Value,
     pipe: Option<PathBuf>,
+    /// Directories which can be used to store data between runs.
+    pub directories: Directories,
+
+    /// Unique human-readable name.
+    pub name: String,
+    /// User-provided options.
+    pub options: serde_json::Value,
+    /// The provided theme.
+    pub theme: Theme,
 }
 
 /// Get the plugin's input.
 ///
 /// ## Panics
-/// Panics when [`serde_json`] is unable to deserialize the input, presumably because it was
-/// incorrect.
+/// Panics when [`serde_json`] is unable to deserialize the input.
 pub fn get_input() -> Input {
     serde_json::from_reader(&mut std::io::stdin()).unwrap()
 }
