@@ -3,6 +3,7 @@ use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
+use std::hash::{Hash, Hasher};
 use std::io;
 use std::path::PathBuf;
 
@@ -72,16 +73,24 @@ impl Default for Paths {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct RegionConfig {
     hue: (f32, f32),
     saturation: (f32, f32),
     lightness: (f32, f32),
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct RegionsConfig {
-    black: RegionConfig,
+impl Hash for RegionConfig {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let mut hash_comp = |comp: f32| state.write(&comp.to_le_bytes());
+
+        hash_comp(self.hue.0);
+        hash_comp(self.hue.1);
+        hash_comp(self.saturation.0);
+        hash_comp(self.saturation.1);
+        hash_comp(self.lightness.0);
+        hash_comp(self.lightness.1);
+    }
 }
 
 impl From<RegionConfig> for color::Region<f32> {
@@ -96,8 +105,8 @@ impl From<RegionConfig> for color::Region<f32> {
 
 impl Default for theme::Palette<RegionConfig> {
     fn default() -> Self {
-        const PRIMARY_SAT: (f32, f32) = (0.0, 1.0);
-        const PRIMARY_LIGHTNESS: (f32, f32) = (0.2, 0.8);
+        const PRIMARY_SAT: (f32, f32) = (0.5, 1.0);
+        const PRIMARY_LIGHTNESS: (f32, f32) = (0.1, 0.9);
         Self {
             black: RegionConfig {
                 hue: (0.0, 360.0),
@@ -120,7 +129,7 @@ impl Default for theme::Palette<RegionConfig> {
                 lightness: PRIMARY_LIGHTNESS,
             },
             blue: RegionConfig {
-                hue: (195.0, 255.0),
+                hue: (210.0, 255.0),
                 saturation: PRIMARY_SAT,
                 lightness: PRIMARY_LIGHTNESS,
             },

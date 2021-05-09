@@ -10,6 +10,7 @@
   "theme": {
     "wallpaper": "test.jpg",
     "colors": {
+      "mode": "dark",
       "black": { "red": 1.0, "green": 1.0, "blue": 1.0 },
       "red": { "red": 1.0, "green": 1.0, "blue": 1.0 },
       "green": { "red": 1.0, "green": 1.0, "blue": 1.0 },

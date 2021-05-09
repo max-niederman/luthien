@@ -26,7 +26,7 @@ pub use palette;
 pub mod palette {
     use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub struct Srgb<T = f32> {
         pub red: T,
         pub green: T,
@@ -38,7 +38,7 @@ pub mod palette {
 ///
 /// Here, this is only used for [`palette::Srgb`], but it can also be used to further process the
 /// given colors.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Palette<T> {
     pub black: T,
     pub red: T,
@@ -99,17 +99,33 @@ impl<T> Palette<T> {
     }
 }
 
-/// Represents the theme which is passed to the plugin.
+/// The color "mode." This is used to distinguish whether the user prefers dark or light themes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ColorMode {
+    Dark,
+    Light,
+}
+
+/// The [`Theme`]'s colors.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct Colors {
+    pub mode: ColorMode,
+    #[serde(flatten)]
+    pub palette: Palette<palette::Srgb>,
+}
+
+/// A theme passed to the plugin.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Theme {
     pub wallpaper: Option<PathBuf>,
-    pub colors: Palette<palette::Srgb>,
+    pub colors: Colors,
 }
 
-/// Represents the directories which plugins can store and output data.
+/// The directories in which the plugin should store and output data.
 ///
 /// These directories are guarunteed to exist and are exclusive to each plugin.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Directories {
     /// For user configuration of the plugin.
     pub config: PathBuf,
@@ -121,7 +137,7 @@ pub struct Directories {
     pub data: PathBuf,
 }
 
-/// Represents the data givent to the plugin.
+/// All data passed to the plugin.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Input {
     pipe: Option<PathBuf>,

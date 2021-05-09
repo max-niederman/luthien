@@ -1,4 +1,4 @@
-use luthien_plugin::{Palette, Theme};
+use luthien_plugin::{Palette, ColorMode, Theme};
 use std::fs;
 use std::io;
 
@@ -24,40 +24,65 @@ impl ControlSequence for Theme {
 
         let mut ret = Vec::with_capacity(8 * 12);
 
-        const INDEXES: Palette<&[Sequence]> = {
+        let indexes = {
             use Sequence::*;
-            Palette {
-                black: &[
-                    Regular(0),
-                    Regular(8),
-                    Special(11),
-                    Special(19),
-                    Special(232),
-                ],
-                red: &[Regular(1), Regular(9)],
-                green: &[Regular(2), Regular(10)],
-                yellow: &[Regular(3), Regular(11)],
-                blue: &[Regular(4), Regular(12)],
-                purple: &[Regular(5), Regular(13)],
-                cyan: &[Regular(6), Regular(14)],
-                white: &[
-                    Regular(7),
-                    Regular(15),
-                    Special(10),
-                    Special(13),
-                    Special(17),
-                    Special(256),
-                ],
+            match self.colors.mode {
+              ColorMode::Dark => Palette {
+                    black: vec![
+                        Regular(0),
+                        Regular(8),
+                        Special(11),
+                        Special(19),
+                        Special(232),
+                    ],
+                    red: vec![Regular(1), Regular(9)],
+                    green: vec![Regular(2), Regular(10)],
+                    yellow: vec![Regular(3), Regular(11)],
+                    blue: vec![Regular(4), Regular(12)],
+                    purple: vec![Regular(5), Regular(13)],
+                    cyan: vec![Regular(6), Regular(14)],
+                    white: vec![
+                        Regular(7),
+                        Regular(15),
+                        Special(10),
+                        Special(13),
+                        Special(17),
+                        Special(256),
+                    ],
+                },
+            ColorMode::Light => Palette {
+                    black: vec![
+                        Regular(0),
+                        Regular(8),
+                        Special(10),
+                        Special(13),
+                        Special(17),
+                        Special(256),
+                    ],
+                    red: vec![Regular(1), Regular(9)],
+                    green: vec![Regular(2), Regular(10)],
+                    yellow: vec![Regular(3), Regular(11)],
+                    blue: vec![Regular(4), Regular(12)],
+                    purple: vec![Regular(5), Regular(13)],
+                    cyan: vec![Regular(6), Regular(14)],
+                    white: vec![
+                        Regular(7),
+                        Regular(15),
+                        Special(11),
+                        Special(19),
+                        Special(232),
+                    ],
+                }
             }
         };
 
-        self.colors.clone().zip(INDEXES).map(|(col, codes)| {
+        self.colors.palette.clone().zip(indexes).map(|(col, codes)| {
             ret.extend(codes.iter().flat_map(|code| {
                 code.sequence(&format!(
                     "#{:02x}{:02x}{:02x}",
-                    (col.red * 255.0) as u8,
-                    (col.green * 255.0) as u8,
-                    (col.blue * 255.0) as u8
+                    (col.red * 0xFF as f32) as u8,
+                    (col.green * 0xFF as f32) as u8,
+                    (col.blue * 0xFF as f32) as u8
                 ))
                 .into_bytes()
             }))

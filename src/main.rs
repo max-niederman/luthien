@@ -16,7 +16,7 @@ mod plugin;
 mod theme;
 
 use persist::{Config, Paths};
-use theme::Theme;
+use theme::{ColorMode, Colors, Theme};
 
 #[derive(Debug, PartialEq, Eq, Clone, StructOpt)]
 #[structopt(name = "luthien")]
@@ -40,12 +40,17 @@ struct Opt {
     #[structopt(short, long)]
     output: Option<PathBuf>,
 
+    /// Override the config file.
     #[structopt(short, long)]
     config: Option<PathBuf>,
 
     /// Skip running plugins.
     #[structopt(short = "s", long = "skip", parse(from_flag = std::ops::Not::not))]
     apply: bool,
+
+    /// Override theme color mode.
+    #[structopt(short, long, default_value = "dark")]
+    mode: ColorMode,
 
     /// Don't cache the generated theme.
     ///
@@ -68,11 +73,14 @@ impl Opt {
 }
 
 fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::Theme> {
-    fn hash<T: Hash>(data: &T, _opt: &Opt) -> u64 {
+    fn hash<T: Hash>(data: &T, opt: &Opt, config: &Config) -> u64 {
         use std::collections::hash_map::DefaultHasher;
 
         let mut hasher = DefaultHasher::new();
         data.hash(&mut hasher);
+
+        config.colors.hash(&mut hasher);
+        opt.mode.hash(&mut hasher);
 
         hasher.finish()
     }
@@ -88,7 +96,7 @@ fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::The
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?
             .into_rgb8();
 
-        let cached_path = paths.cache.join(hash(&img, &opt).to_string());
+        let cached_path = paths.cache.join(format!("{:16x}", hash(&img, &opt, &config)));
 
         if let Ok(Ok(theme)) = File::open(&cached_path).map(serde_json::from_reader::<File, Theme>)
         {
@@ -98,21 +106,24 @@ fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::The
             info!("Cache missed; generating theme from image...");
             let theme = Theme {
                 wallpaper: Some(path.clone()),
-                colors: {
-                    use palette::Srgb;
+                colors: Colors {
+                    mode: opt.mode,
+                    palette: {
+                        use palette::Srgb;
 
-                    trace!("Generating color palette...");
-                    let generator = palette_gen::GenerationOpts::default();
-                    generator.generate(
-                        img.par_chunks(3).map(|pix| {
-                            Srgb::from_components((
-                                pix[0] as f32 / 255.0,
-                                pix[1] as f32 / 255.0,
-                                pix[2] as f32 / 255.0,
-                            ))
-                        }),
-                        config.colors.map(Into::into),
-                    )
+                        trace!("Generating color palette...");
+                        let generator = palette_gen::GenerationOpts::default();
+                        generator.generate(
+                            img.par_chunks(3).map(|pix| {
+                                Srgb::from_components((
+                                    pix[0] as f32 / 255.0,
+                                    pix[1] as f32 / 255.0,
+                                    pix[2] as f32 / 255.0,
+                                ))
+                            }),
+                            config.colors.map(Into::into),
+                        )
+                    },
                 },
             };
 
@@ -232,6 +243,7 @@ fn main() -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::Opt;
+    use crate::theme::ColorMode;
     use std::path::PathBuf;
     use structopt::StructOpt;
 
@@ -246,6 +258,7 @@ mod tests {
                 output: None,
                 config: None,
                 apply: true,
+                mode: ColorMode::Dark,
                 cache: true,
             }
         );
@@ -257,6 +270,7 @@ mod tests {
                 output: None,
                 config: None,
                 apply: true,
+                mode: ColorMode::Dark,
                 cache: true,
             }
         );
@@ -268,6 +282,7 @@ mod tests {
                 output: None,
                 config: None,
                 apply: false,
+                mode: ColorMode::Dark,
                 cache: true,
             }
         );
@@ -279,6 +294,8 @@ mod tests {
                 "image.jpg",
                 "--output",
                 "output.toml",
+                "--mode",
+                "light",
                 "--no-cache",
                 "theme.toml"
             ]),
@@ -288,6 +305,7 @@ mod tests {
                 output: Some(PathBuf::from("output.toml")),
                 config: None,
                 apply: false,
+                mode: ColorMode::Light,
                 cache: false,
             }
         );

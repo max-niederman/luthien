@@ -1,5 +1,5 @@
 use luthien_plugin::palette::{self, white_point};
-use luthien_plugin::Palette;
+use luthien_plugin::{Theme, Palette, ColorMode};
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -39,6 +39,7 @@ where
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Colors {
+    mode: luthien_plugin::ColorMode,
     palette: Palette<Color>,
     background: Color,
     foreground: Color,
@@ -50,16 +51,26 @@ pub struct Data {
     colors: Colors,
 }
 
-impl From<luthien_plugin::Theme> for Data {
-    fn from(raw: luthien_plugin::Theme) -> Self {
+impl From<Theme> for Data {
+    fn from(raw: Theme) -> Self {
+        let colors = match raw.colors.mode {
+            ColorMode::Dark => Colors {
+                mode: raw.colors.mode,
+                foreground: raw.colors.palette.white.into(),
+                background: raw.colors.palette.black.into(),
+                palette: raw.colors.palette.map(From::from),
+            },
+            ColorMode::Light => Colors {
+                mode: raw.colors.mode,
+                foreground: raw.colors.palette.black.into(),
+                background: raw.colors.palette.white.into(),
+                palette: raw.colors.palette.map(From::from),
+            },
+        };
+
         Self {
             wallpaper: raw.wallpaper,
-            colors: Colors {
-                // TODO: Add light mode option
-                foreground: raw.colors.black.into(),
-                background: raw.colors.white.into(),
-                palette: raw.colors.map(From::from),
-            },
+            colors,
         }
     }
 }

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Palette<T> {
     pub black: T,
     pub red: T,
@@ -56,7 +56,9 @@ where
         fn color_block<T: IntoColor + Clone>(col: T) -> impl fmt::Display {
             use colored::*;
 
-            let col = col.into_rgb::<palette::encoding::Srgb>().into_encoding::<palette::encoding::Srgb>();
+            let col = col
+                .into_rgb::<palette::encoding::Srgb>()
+                .into_encoding::<palette::encoding::Srgb>();
             "  ".on_truecolor(
                 (col.red * 0xFF as f32) as u8,
                 (col.green * 0xFF as f32) as u8,
@@ -79,10 +81,35 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ColorMode {
+    Dark,
+    Light,
+}
+
+impl std::str::FromStr for ColorMode {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "dark" => Ok(Self::Dark),
+            "light" => Ok(Self::Light),
+            _ => Err("Color mode not found."),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
+pub struct Colors {
+    pub mode: ColorMode,
+    #[serde(flatten)]
+    pub palette: Palette<Srgb>,
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Theme {
     pub wallpaper: Option<PathBuf>,
-    pub colors: Palette<Srgb>,
+    pub colors: Colors,
 }
 
 impl fmt::Display for Theme {
@@ -90,13 +117,14 @@ impl fmt::Display for Theme {
         if let Some(bg) = &self.wallpaper {
             writeln!(f, "Wallpaper: {}", bg.to_str().ok_or(fmt::Error)?)?;
         }
-        write!(f, "Color Palette: {}", self.colors)
+        writeln!(f, "Color Palette: {}", self.colors.palette)?;
+        write!(f, "Color Mode: {:?}", self.colors.mode)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Palette, Theme};
+    use super::*;
     use palette::Srgb;
     use std::path::PathBuf;
 
@@ -104,15 +132,18 @@ mod tests {
         () => {
             Theme {
                 wallpaper: Some(PathBuf::from("test.jpg")),
-                colors: Palette {
-                    black: Srgb::new(0.0, 0.0, 0.0),
-                    red: Srgb::new(1.0, 0.0, 0.0),
-                    green: Srgb::new(0.0, 1.0, 0.0),
-                    yellow: Srgb::new(1.0, 1.0, 0.0),
-                    blue: Srgb::new(0.0, 0.0, 1.0),
-                    purple: Srgb::new(1.0, 0.0, 1.0),
-                    cyan: Srgb::new(0.0, 1.0, 1.0),
-                    white: Srgb::new(1.0, 1.0, 1.0),
+                colors: Colors {
+                    mode: ColorMode::Dark,
+                    palette: Palette {
+                        black: Srgb::new(0.0, 0.0, 0.0),
+                        red: Srgb::new(1.0, 0.0, 0.0),
+                        green: Srgb::new(0.0, 1.0, 0.0),
+                        yellow: Srgb::new(1.0, 1.0, 0.0),
+                        blue: Srgb::new(0.0, 0.0, 1.0),
+                        purple: Srgb::new(1.0, 0.0, 1.0),
+                        cyan: Srgb::new(0.0, 1.0, 1.0),
+                        white: Srgb::new(1.0, 1.0, 1.0),
+                    },
                 },
             }
         };
@@ -128,7 +159,7 @@ mod tests {
 
     #[test]
     fn display() {
-        format!("{}", test_theme!().colors);
+        format!("{}", test_theme!().colors.palette);
         format!("{}", test_theme!());
     }
 }
