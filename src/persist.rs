@@ -145,7 +145,7 @@ impl Default for theme::Palette<RegionConfig> {
             },
             white: RegionConfig {
                 hue: (0.0, 360.0),
-                saturation: (0.0, 1.0),
+                saturation: (0.0, 0.5),
                 lightness: (PRIMARY_LIGHTNESS.1, 1.0),
             },
         }

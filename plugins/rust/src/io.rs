@@ -11,7 +11,7 @@ impl Input {
     /// Get an [`ipipe::Pipe`] which can be used to read input and print output to the parent
     /// Luthien process.
     pub fn io(&self) -> Option<ipipe::Result<Pipe>> {
-        self.pipe
+        self.pipe_path
             .as_ref()
             .map(|path| Pipe::open(path, OnCleanup::NoDelete))
     }

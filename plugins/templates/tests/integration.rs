@@ -5,7 +5,7 @@ use std::process::{Command, Stdio};
 
 #[test]
 #[allow(unused_must_use)]
-fn integrate()  {
+fn integrate() {
     fs::remove_dir_all("tests/out"); // In case the test failed before it could clean up.
     fs::create_dir("tests/out").unwrap();
 
@@ -26,7 +26,7 @@ fn integrate()  {
     let out = proc
         .wait_with_output()
         .expect("Failed to wait on luthien-templates process.");
-    assert_eq!(std::str::from_utf8(&out.stdout).unwrap(), "",);
+    assert_eq!(std::str::from_utf8(&out.stdout).unwrap(), "");
     assert_eq!(
         std::str::from_utf8(&out.stderr).unwrap(),
         "Successfully rendered 1/1 templates.\n",

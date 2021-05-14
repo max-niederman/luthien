@@ -31,6 +31,8 @@ impl<T: Default> Default for Palette<T> {
 }
 
 impl<T> Palette<T> {
+
+
     pub fn map<F, R>(self, mut f: F) -> Palette<R>
     where
         F: FnMut(T) -> R,
@@ -81,29 +83,12 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ColorMode {
-    Dark,
-    Light,
-}
-
-impl std::str::FromStr for ColorMode {
-    type Err = &'static str;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "dark" => Ok(Self::Dark),
-            "light" => Ok(Self::Light),
-            _ => Err("Color mode not found."),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
-pub struct Colors {
-    pub mode: ColorMode,
-    #[serde(flatten)]
-    pub palette: Palette<Srgb>,
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct Colors<Color = Srgb> {
+    pub palette: Palette<Color>,
+    pub accents: Vec<Color>,
+    pub foreground: Color,
+    pub background: Color,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -112,13 +97,13 @@ pub struct Theme {
     pub colors: Colors,
 }
 
+// TODO: Implement [`Display`] for [`Colors`] and use here.
 impl fmt::Display for Theme {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(bg) = &self.wallpaper {
             writeln!(f, "Wallpaper: {}", bg.to_str().ok_or(fmt::Error)?)?;
         }
-        writeln!(f, "Color Palette: {}", self.colors.palette)?;
-        write!(f, "Color Mode: {:?}", self.colors.mode)
+        write!(f, "Color Palette: {}", self.colors.palette)
     }
 }
 
@@ -129,24 +114,35 @@ mod tests {
     use std::path::PathBuf;
 
     macro_rules! test_theme {
-        () => {
+        () => {{
+            let palette = Palette {
+                black: Srgb::new(0.0, 0.0, 0.0),
+                red: Srgb::new(1.0, 0.0, 0.0),
+                green: Srgb::new(0.0, 1.0, 0.0),
+                yellow: Srgb::new(1.0, 1.0, 0.0),
+                blue: Srgb::new(0.0, 0.0, 1.0),
+                purple: Srgb::new(1.0, 0.0, 1.0),
+                cyan: Srgb::new(0.0, 1.0, 1.0),
+                white: Srgb::new(1.0, 1.0, 1.0),
+            };
             Theme {
                 wallpaper: Some(PathBuf::from("test.jpg")),
                 colors: Colors {
-                    mode: ColorMode::Dark,
-                    palette: Palette {
-                        black: Srgb::new(0.0, 0.0, 0.0),
-                        red: Srgb::new(1.0, 0.0, 0.0),
-                        green: Srgb::new(0.0, 1.0, 0.0),
-                        yellow: Srgb::new(1.0, 1.0, 0.0),
-                        blue: Srgb::new(0.0, 0.0, 1.0),
-                        purple: Srgb::new(1.0, 0.0, 1.0),
-                        cyan: Srgb::new(0.0, 1.0, 1.0),
-                        white: Srgb::new(1.0, 1.0, 1.0),
-                    },
+                    accents: vec![
+                        palette.red.clone(),
+                        palette.green.clone(),
+                        palette.yellow.clone(),
+                        palette.blue.clone(),
+                        palette.purple.clone(),
+                        palette.cyan.clone(),
+                    ],
+                    foreground: palette.white.clone(),
+                    background: palette.black.clone(),
+
+                    palette,
                 },
             }
-        };
+        }};
     }
 
     #[test]

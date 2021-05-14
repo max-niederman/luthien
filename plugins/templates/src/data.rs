@@ -1,9 +1,6 @@
-use luthien_plugin::palette::{self, white_point};
-use luthien_plugin::{Theme, Palette, ColorMode};
+use luthien_plugin::{palette::Srgb, Colors, Theme};
 use serde::Serialize;
 use std::path::PathBuf;
-
-type WhitePoint = white_point::D65;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Color {
@@ -14,18 +11,13 @@ pub struct Color {
     blue: f32,
 }
 
-impl<C> From<C> for Color
-where
-    C: palette::IntoColor<WhitePoint, f32>,
-{
-    fn from(col: C) -> Self {
-        let rgb = col.into_rgb::<palette::encoding::Srgb>();
-
+impl From<Srgb> for Color {
+    fn from(rgb: Srgb) -> Self {
         let hex = format!(
             "{:02x}{:02x}{:02x}",
-            (rgb.red * 255.0) as u8,
-            (rgb.blue * 255.0) as u8,
-            (rgb.blue * 255.0) as u8
+            (rgb.red * 0xFF as f32) as u8,
+            (rgb.green * 0xFF as f32) as u8,
+            (rgb.blue * 0xFF as f32) as u8
         );
         Self {
             hex: format!("#{}", hex),
@@ -38,39 +30,21 @@ where
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Colors {
-    mode: luthien_plugin::ColorMode,
-    palette: Palette<Color>,
-    background: Color,
-    foreground: Color,
-}
-
-#[derive(Debug, Clone, Serialize)]
 pub struct Data {
     wallpaper: Option<PathBuf>,
-    colors: Colors,
+    colors: Colors<Color>,
 }
 
 impl From<Theme> for Data {
-    fn from(raw: Theme) -> Self {
-        let colors = match raw.colors.mode {
-            ColorMode::Dark => Colors {
-                mode: raw.colors.mode,
-                foreground: raw.colors.palette.white.into(),
-                background: raw.colors.palette.black.into(),
-                palette: raw.colors.palette.map(From::from),
-            },
-            ColorMode::Light => Colors {
-                mode: raw.colors.mode,
-                foreground: raw.colors.palette.black.into(),
-                background: raw.colors.palette.white.into(),
-                palette: raw.colors.palette.map(From::from),
-            },
-        };
-
+    fn from(theme: Theme) -> Self {
         Self {
-            wallpaper: raw.wallpaper,
-            colors,
+            wallpaper: theme.wallpaper,
+            colors: Colors {
+                palette: theme.colors.palette.map(Into::into),
+                accents: theme.colors.accents.into_iter().map(Into::into).collect(),
+                foreground: theme.colors.foreground.into(),
+                background: theme.colors.background.into(),
+            },
         }
     }
 }

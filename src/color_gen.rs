@@ -1,5 +1,5 @@
 use crate::color::{Region, WhitePoint};
-use crate::theme::Palette;
+use crate::theme::{Palette, Colors};
 use num_traits::{Float, Signed};
 use palette::{FromColor, IntoColor};
 use rayon::prelude::*;
@@ -19,7 +19,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AverageMethod {
     LabCentroid,
 }
@@ -40,11 +40,11 @@ impl AverageMethod {
     }
 }
 
-pub struct GenerationOpts {
+pub struct Generator {
     pub average_method: AverageMethod,
 }
 
-impl Default for GenerationOpts {
+impl Default for Generator {
     fn default() -> Self {
         Self {
             average_method: AverageMethod::LabCentroid,
@@ -52,17 +52,43 @@ impl Default for GenerationOpts {
     }
 }
 
-impl GenerationOpts {
-    pub fn generate<I, C, R>(&self, cols: I, regs: Palette<Region<C>>) -> Palette<R>
+impl Generator {
+    fn gen_palette<I, C, R>(&self, cols: I, regs: Palette<Region<C>>) -> Palette<(R, usize)>
     where
         I: Clone + ParallelIterator,
         I::Item: Clone + IntoColor<WhitePoint, C>,
         C: Send + Sync + palette::Component + Float + Signed,
-        R: FromColor<WhitePoint, C>,
+        R: Clone + FromColor<WhitePoint, C>,
     {
-        regs.split(cols)
-            .map(|part| self.average_method.average(part.into_par_iter()))
-            .map(Option::unwrap) // TODO: Handle images missing necessary colors.
+        let split = regs.split(cols).map(IntoParallelIterator::into_par_iter);
+
+        split
+            .map(|part| (part.len(), self.average_method.average::<_, _, R>(part)))
+            .map(|(a, l)| (l.unwrap(), a)) // TODO: Handle images missing necessary colors.
+    }
+
+    pub fn generate<I, C, R>(&self, cols: I, regs: Palette<Region<C>>) -> Colors<R>
+    where
+        I: Clone + ParallelIterator,
+        I::Item: Clone + IntoColor<WhitePoint, C>,
+        C: Send + Sync + palette::Component + Float + Signed,
+        R: Copy + FromColor<WhitePoint, C>,
+    {
+        // Generate the palette of colors.
+        let pal = self.gen_palette(cols, regs);
+        
+        // Get accents by color prevalence.
+        let mut accents = [pal.red, pal.green, pal.yellow, pal.blue, pal.purple, pal.cyan];
+        accents.sort_by_key(|(_, c)| *c);
+        accents.reverse();
+
+        Colors {
+            palette: pal.map(|(c, _)| c),
+            accents: accents.iter().map(|(c, _)| *c).collect(),
+            // TODO: Intelligently decide foreground and background.
+            foreground: pal.white.0,
+            background: pal.black.0,
+        }
     }
 }
 

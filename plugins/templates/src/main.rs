@@ -1,5 +1,6 @@
 mod data;
 mod error;
+mod hooks;
 
 use data::Data;
 use error::Error;
@@ -8,8 +9,17 @@ use std::ffi::OsStr;
 use std::fs;
 
 trait Environment {
-    fn render_template(&self, name: &OsStr, hb: &Handlebars, ctx: &handlebars::Context) -> error::Result<()>;
-    fn render_all_templates(&self, hb: &Handlebars, ctx: &handlebars::Context) -> error::Result<(usize, usize)>;
+    fn render_template(
+        &self,
+        name: &OsStr,
+        hb: &Handlebars,
+        ctx: &handlebars::Context,
+    ) -> error::Result<()>;
+    fn render_all_templates(
+        &self,
+        hb: &Handlebars,
+        ctx: &handlebars::Context,
+    ) -> error::Result<(usize, usize)>;
 }
 
 impl Environment for luthien_plugin::Directories {
@@ -51,12 +61,14 @@ impl Environment for luthien_plugin::Directories {
 }
 
 fn main() -> error::Result<()> {
-    let input = luthien_plugin::get_input();
+    let input = luthien_plugin::get_input()
+        .expect("Input was malformed. Try updating this plugin and/or Luthien.");
     let env = input.directories;
     let data = serde_json::to_value(Data::from(input.theme.clone()))
         .expect("Failed to transform plugin input to template data.");
 
-    let template_count = env.render_all_templates(&Handlebars::new(), &handlebars::Context::wraps(data)?)?;
+    let template_count =
+        env.render_all_templates(&Handlebars::new(), &handlebars::Context::wraps(data)?)?;
 
     eprintln!(
         "Successfully rendered {}/{} templates.",

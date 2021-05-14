@@ -14,112 +14,33 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+pub mod theme;
+
 #[cfg(feature = "io")]
 pub mod io;
+
+pub use theme::{Colors, Palette, Theme};
 
 pub use serde_json;
 
 #[cfg(feature = "palette")]
 pub use palette;
-
 #[cfg(not(feature = "palette"))]
 pub mod palette {
     use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub struct Srgb<T = f32> {
         pub red: T,
         pub green: T,
         pub blue: T,
     }
-}
 
-/// Colored palette of generic data.
-///
-/// Here, this is only used for [`palette::Srgb`], but it can also be used to further process the
-/// given colors.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Palette<T> {
-    pub black: T,
-    pub red: T,
-    pub green: T,
-    pub yellow: T,
-    pub blue: T,
-    pub purple: T,
-    pub cyan: T,
-    pub white: T,
-}
-
-impl<T> Palette<T> {
-    /// Returns a [`Palette`] where every element is one value.
-    pub fn uniform(v: T) -> Self
-    where
-        T: Clone,
-    {
-        Self {
-            black: v.clone(),
-            red: v.clone(),
-            green: v.clone(),
-            yellow: v.clone(),
-            blue: v.clone(),
-            purple: v.clone(),
-            cyan: v.clone(),
-            white: v,
+    impl<T> Srgb<T> {
+        pub const fn new(red: T, green: T, blue: T) -> Self {
+            Self { red, green, blue }
         }
     }
-
-    /// Zip this [`Palette`] with another, returning a [`Palette`] of tuples.
-    pub fn zip<U>(self, other: Palette<U>) -> Palette<(T, U)> {
-        Palette {
-            black: (self.black, other.black),
-            red: (self.red, other.red),
-            green: (self.green, other.green),
-            yellow: (self.yellow, other.yellow),
-            blue: (self.blue, other.blue),
-            purple: (self.purple, other.purple),
-            cyan: (self.cyan, other.cyan),
-            white: (self.white, other.white),
-        }
-    }
-
-    pub fn map<F, U>(self, mut f: F) -> Palette<U>
-    where
-        F: FnMut(T) -> U,
-    {
-        Palette {
-            black: f(self.black),
-            red: f(self.red),
-            green: f(self.green),
-            yellow: f(self.yellow),
-            blue: f(self.blue),
-            purple: f(self.purple),
-            cyan: f(self.cyan),
-            white: f(self.white),
-        }
-    }
-}
-
-/// The color "mode." This is used to distinguish whether the user prefers dark or light themes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ColorMode {
-    Dark,
-    Light,
-}
-
-/// The [`Theme`]'s colors.
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct Colors {
-    pub mode: ColorMode,
-    #[serde(flatten)]
-    pub palette: Palette<palette::Srgb>,
-}
-
-/// A theme passed to the plugin.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Theme {
-    pub wallpaper: Option<PathBuf>,
-    pub colors: Colors,
 }
 
 /// The directories in which the plugin should store and output data.
@@ -140,7 +61,8 @@ pub struct Directories {
 /// All data passed to the plugin.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Input {
-    pipe: Option<PathBuf>,
+    #[serde(rename = "pipe")]
+    pub pipe_path: Option<PathBuf>,
     /// Directories which can be used to store data between runs.
     pub directories: Directories,
 
@@ -152,10 +74,7 @@ pub struct Input {
     pub theme: Theme,
 }
 
-/// Get the plugin's input.
-///
-/// ## Panics
-/// Panics when [`serde_json`] is unable to deserialize the input.
-pub fn get_input() -> Input {
-    serde_json::from_reader(&mut std::io::stdin()).unwrap()
+/// Get the plugin's input or [`None`] if it couldn't be deserialized.
+pub fn get_input() -> Option<Input> {
+    serde_json::from_reader(&mut std::io::stdin()).ok()
 }

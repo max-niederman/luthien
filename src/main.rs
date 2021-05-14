@@ -1,4 +1,4 @@
-use log::{error, info, trace, warn};
+use log::{error, warn, info, trace, debug};
 use rayon::prelude::*;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
@@ -9,14 +9,14 @@ use std::thread;
 use structopt::StructOpt;
 
 mod color;
+mod color_gen;
 mod mod_arith;
-mod palette_gen;
 mod persist;
 mod plugin;
 mod theme;
 
 use persist::{Config, Paths};
-use theme::{ColorMode, Colors, Theme};
+use theme::Theme;
 
 #[derive(Debug, PartialEq, Eq, Clone, StructOpt)]
 #[structopt(name = "luthien")]
@@ -48,14 +48,10 @@ struct Opt {
     #[structopt(short = "s", long = "skip", parse(from_flag = std::ops::Not::not))]
     apply: bool,
 
-    /// Override theme color mode.
-    #[structopt(short, long, default_value = "dark")]
-    mode: ColorMode,
-
     /// Don't cache the generated theme.
     ///
-    /// The cached theme is labeled by the hash of its source image, so there are no problems with
-    /// changing filenames.
+    /// The cached theme is labeled by the hash of its source image and generation options, so
+    /// there are no problems with changing filenames.
     #[structopt(long = "no-cache", parse(from_flag = std::ops::Not::not))]
     cache: bool,
 }
@@ -73,14 +69,13 @@ impl Opt {
 }
 
 fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::Theme> {
-    fn hash<T: Hash>(data: &T, opt: &Opt, config: &Config) -> u64 {
+    fn hash<T: Hash>(data: &T, _opt: &Opt, config: &Config) -> u64 {
         use std::collections::hash_map::DefaultHasher;
 
         let mut hasher = DefaultHasher::new();
         data.hash(&mut hasher);
 
         config.colors.hash(&mut hasher);
-        opt.mode.hash(&mut hasher);
 
         hasher.finish()
     }
@@ -96,7 +91,9 @@ fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::The
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?
             .into_rgb8();
 
-        let cached_path = paths.cache.join(format!("{:16x}", hash(&img, &opt, &config)));
+        let cached_path = paths
+            .cache
+            .join(format!("{:16x}", hash(&img, &opt, &config)));
 
         if let Ok(Ok(theme)) = File::open(&cached_path).map(serde_json::from_reader::<File, Theme>)
         {
@@ -106,24 +103,21 @@ fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::The
             info!("Cache missed; generating theme from image...");
             let theme = Theme {
                 wallpaper: Some(path.clone()),
-                colors: Colors {
-                    mode: opt.mode,
-                    palette: {
-                        use palette::Srgb;
+                colors: {
+                    use palette::Srgb;
 
-                        trace!("Generating color palette...");
-                        let generator = palette_gen::GenerationOpts::default();
-                        generator.generate(
-                            img.par_chunks(3).map(|pix| {
-                                Srgb::from_components((
-                                    pix[0] as f32 / 255.0,
-                                    pix[1] as f32 / 255.0,
-                                    pix[2] as f32 / 255.0,
-                                ))
-                            }),
-                            config.colors.map(Into::into),
-                        )
-                    },
+                    trace!("Generating color palette...");
+                    let generator = color_gen::Generator::default();
+                    generator.generate(
+                        img.par_chunks(3).map(|pix| {
+                            Srgb::from_components((
+                                pix[0] as f32 / 255.0,
+                                pix[1] as f32 / 255.0,
+                                pix[2] as f32 / 255.0,
+                            ))
+                        }),
+                        config.colors.map(Into::into),
+                    )
                 },
             };
 
@@ -196,16 +190,15 @@ fn run_plugins(config: &Config, theme: Theme) -> io::Result<()> {
                     error!("Plugin {} exited with a non-zero error code.", pl.name());
                 }
             }
-            Err(_) => {
+            Err(e) => {
                 // TODO: Add descriptive error message
                 error!("Failed to run plugin {}.", pl.name());
+                debug!("{}", e);
             }
         }
     }
 
-    // Delete pipe by implicitly dropping it.
-    get_pipe()?;
-
+    drop(get_pipe()?);
     Ok(())
 }
 
@@ -243,7 +236,6 @@ fn main() -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::Opt;
-    use crate::theme::ColorMode;
     use std::path::PathBuf;
     use structopt::StructOpt;
 
@@ -258,7 +250,6 @@ mod tests {
                 output: None,
                 config: None,
                 apply: true,
-                mode: ColorMode::Dark,
                 cache: true,
             }
         );
@@ -270,7 +261,6 @@ mod tests {
                 output: None,
                 config: None,
                 apply: true,
-                mode: ColorMode::Dark,
                 cache: true,
             }
         );
@@ -282,7 +272,6 @@ mod tests {
                 output: None,
                 config: None,
                 apply: false,
-                mode: ColorMode::Dark,
                 cache: true,
             }
         );
@@ -294,8 +283,6 @@ mod tests {
                 "image.jpg",
                 "--output",
                 "output.toml",
-                "--mode",
-                "light",
                 "--no-cache",
                 "theme.toml"
             ]),
@@ -305,7 +292,6 @@ mod tests {
                 output: Some(PathBuf::from("output.toml")),
                 config: None,
                 apply: false,
-                mode: ColorMode::Light,
                 cache: false,
             }
         );
