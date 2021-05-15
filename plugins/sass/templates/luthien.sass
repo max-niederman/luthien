@@ -1,0 +1,27 @@
+// Wallpaper
+{% match wallpaper %}
+  {% when Some with (url) %}
+    $wallpaper: url("{{ url }}");
+  {% when None %}
+{% endmatch %}
+
+// Colors
+$palette: (
+  black: {{ colors.palette.black.hex() }},
+  red: {{ colors.palette.red.hex() }},
+  green: {{ colors.palette.green.hex() }},
+  yellow: {{ colors.palette.yellow.hex() }},
+  blue: {{ colors.palette.blue.hex() }},
+  purple: {{ colors.palette.purple.hex() }},
+  cyan: {{ colors.palette.cyan.hex() }},
+  white: {{ colors.palette.white.hex() }},
+);
+
+$accents: (
+  {% for col in colors.accents %}
+    {{ col.hex() }},
+  {% endfor %}
+);
+
+$foreground: {{ colors.foreground.hex() }};
+$background: {{ colors.background.hex() }};

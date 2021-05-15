@@ -1,0 +1,10 @@
+[package]
+name = "luthien-sass"
+version = "0.1.0"
+authors = ["Max Niederman <max@maxniederman.com>"]
+edition = "2018"
+
+[dependencies]
+luthien-plugin = { path = "../rust" }
+grass = "0.10"
+askama = "0.10"
