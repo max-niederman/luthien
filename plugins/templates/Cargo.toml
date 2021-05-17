@@ -5,7 +5,7 @@ authors = ["Max Niederman <max@maxniederman.com>"]
 edition = "2018"
 
 [dependencies]
-luthien-plugin = { path = "../rust" }
+luthien-plugin = { path = "../lib/rust" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 handlebars = "3.5"

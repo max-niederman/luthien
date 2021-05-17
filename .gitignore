@@ -1,7 +1,10 @@
 # Rust
-/target
+/target/
+/*/target/
+/plugins/*/target/
+/plugins/lib/*/target/
 
 # Editor 
-/.vim
+/.vim/
 /.vimrc
 /.nvimrc

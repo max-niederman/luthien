@@ -5,6 +5,6 @@ authors = ["Max Niederman <max@maxniederman.com>"]
 edition = "2018"
 
 [dependencies]
-luthien-plugin = { path = "../rust" }
+luthien-plugin = { path = "../lib/rust" }
 grass = "0.10"
 askama = "0.10"

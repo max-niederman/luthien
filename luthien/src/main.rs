@@ -202,8 +202,16 @@ fn run_plugins(config: &Config, theme: Theme) -> io::Result<()> {
     Ok(())
 }
 
+fn init_logger() {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
+    }
+
+    pretty_env_logger::init()
+}
+
 fn main() -> io::Result<()> {
-    pretty_env_logger::init();
+    init_logger();
 
     trace!("Parsing opts...");
     let opt = Opt::from_args();

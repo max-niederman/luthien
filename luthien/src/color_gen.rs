@@ -64,7 +64,7 @@ impl Generator {
 
         split
             .map(|part| (part.len(), self.average_method.average::<_, _, R>(part)))
-            .map(|(a, l)| (l.unwrap(), a)) // TODO: Handle images missing necessary colors.
+            .map(|(a, l)| (l.unwrap_or_else(|| todo!("handle images missing necessary colors")), a))
     }
 
     pub fn generate<I, C, R>(&self, cols: I, regs: Palette<Region<C>>) -> Colors<R>
