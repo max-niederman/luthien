@@ -150,7 +150,7 @@ mod tests {
         let serialized = serde_json::to_string(&test_theme!()).expect("Failed to serialize.");
         let deserialized = serde_json::from_str(&serialized).expect("Failed to deserialize.");
 
-        assert_eq!(test_theme!(), deserialized)
+        assert_eq!(test_theme!(), deserialized);
     }
 
     #[test]
