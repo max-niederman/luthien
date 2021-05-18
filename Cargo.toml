@@ -1,6 +1,28 @@
+[package]
+name = "luthien"
+description = "A WIP tool which generates and applies color schemes."
+version = "0.1.0"
+authors = ["Max Niederman <max@maxniederman.com>"]
+license = "MIT"
+edition = "2018"
+
+[dependencies]
+palette = { version = "0.5", default-features = false, features = ["serializing"] }
+image =  "0.23" 
+rayon = "1.5"
+num-traits = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.5"
+log = "0.4"
+pretty_env_logger = "0.4"
+colored = "2.0"
+structopt = "0.3"
+dirs = "3.0"
+ipipe = "0.8"
+
 [workspace]
 members = [
-    "luthien",
     "plugins/lib/*",
     "plugins/*",
 ]

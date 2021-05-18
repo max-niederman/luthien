@@ -1,6 +1,5 @@
 # Rust
 /target/
-/*/target/
 /plugins/*/target/
 /plugins/lib/*/target/
 
