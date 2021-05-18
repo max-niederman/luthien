@@ -667,7 +667,6 @@ name = "luthien-plugin"
 version = "0.1.0"
 dependencies = [
  "ipipe",
- "palette",
  "serde",
  "serde_json",
 ]

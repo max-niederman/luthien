@@ -1,8 +1,7 @@
 [workspace]
 members = [
     "luthien",
-    "plugins/lib/rust",
-    "plugins/terminal",
-    "plugins/templates",
-    "plugins/sass",
+    "plugins/lib/*",
+    "plugins/*",
 ]
+exclude = ["plugins/lib"]

@@ -1,7 +1,9 @@
 [package]
 name = "luthien"
+description = "A WIP tool which generates and applies color schemes."
 version = "0.1.0"
 authors = ["Max Niederman <max@maxniederman.com>"]
+license = "MIT"
 edition = "2018"
 
 [dependencies]

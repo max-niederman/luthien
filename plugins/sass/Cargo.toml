@@ -1,10 +1,12 @@
 [package]
 name = "luthien-sass"
+description = "Luthien plugin which compiles Sass stylesheets."
 version = "0.1.0"
 authors = ["Max Niederman <max@maxniederman.com>"]
+license = "MIT"
 edition = "2018"
 
 [dependencies]
-luthien-plugin = { path = "../lib/rust" }
+luthien-plugin = { path = "../lib/rust", version = "0.1" }
 grass = "0.10"
 askama = "0.10"
