@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::hash::{Hash, Hasher};
 use std::io;
-use std::path::PathBuf;
+use std::iter::FromIterator;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct Paths {
@@ -48,9 +49,8 @@ impl Paths {
         }
     }
 
-    pub fn get_theme(&self, locator: PathBuf) -> io::Result<theme::Theme> {
-        let file =
-            File::open(locator.clone()).or_else(|_| File::open(self.themes.join(locator)))?;
+    pub fn get_theme(&self, locator: impl AsRef<Path>) -> io::Result<theme::Theme> {
+        let file = File::open(&locator).or_else(|_| File::open(self.themes.join(locator)))?;
         let reader = io::BufReader::new(file);
 
         serde_json::from_reader(reader).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
@@ -152,8 +152,8 @@ impl Default for theme::Palette<RegionConfig> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PluginConfig {
+#[derive(Deserialize)]
+pub struct PluginConfigRaw {
     pub executable: PathBuf,
     pub name: Option<String>,
 
@@ -165,11 +165,60 @@ pub struct PluginConfig {
     pub options: serde_json::Value,
 }
 
+impl From<PluginConfigRaw> for PluginConfig {
+    fn from(raw: PluginConfigRaw) -> Self {
+        Self {
+            executable: {
+                if raw.executable.iter().next() == Some("~".as_ref()) {
+                    PathBuf::from_iter(
+                        std::iter::once(
+                            dirs::home_dir()
+                                .ok_or_else(std::env::current_dir)
+                                .expect("Couldn't expand tilde (~) in plugin executable path."),
+                        )
+                        .chain(raw.executable.iter().skip(1).map(PathBuf::from)),
+                    )
+                } else if raw.executable.is_relative() {
+                    dirs::config_dir()
+                        .map(|p| p.join("luthien"))
+                        .or_else(dirs::home_dir)
+                        .unwrap_or_else(PathBuf::new)
+                        .join(raw.executable)
+                } else {
+                    raw.executable
+                }
+            },
+
+            name: raw.name,
+            args: raw.args,
+            env: raw.env,
+            options: raw.options,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "PluginConfigRaw")]
+pub struct PluginConfig {
+    pub executable: PathBuf,
+    pub name: Option<String>,
+
+    pub args: Vec<String>,
+    pub env: HashMap<String, String>,
+    pub options: serde_json::Value,
+}
+
+#[serde(default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ExtractionConfig {
+    pub target: theme::Palette<RegionConfig>,
+}
+
 #[serde(default)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
-    pub colors: theme::Palette<RegionConfig>,
     pub plugins: Vec<PluginConfig>,
+    pub extraction: ExtractionConfig,
 }
 
 #[cfg(test)]
