@@ -18,20 +18,19 @@ cargo install luthien
 
 ## Usage
 
-You can generate a theme from an image by using the `-i` flag like so:
+You can extract a theme from an image by using the `extract` subcommand with the `image` extractor like so:
 
 ```bash
-luthien -i path/to/image.jpg
+luthien extract image path/to/image.jpg
 ```
 
 You should get output that looks something like this:
 
 ```
- INFO  luthien > Getting theme...
- INFO  luthien > Cache missed; generating theme from image...
- INFO  luthien > Theme Preview:
- ...
- INFO  luthien > Running plugins...
+ INFO  luthien::extraction > Cache hit; using cached theme...
+ INFO  luthien             > Theme Preview:
+...
+ INFO  luthien             > Applying theme...
 ```
 
 _NOTE: You may recognize this as output from Rust's `log` framework; and indeed, if you set `RUST_LOG=trace`, you'll get much more granular output._
