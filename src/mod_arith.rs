@@ -65,6 +65,14 @@ where
 
         self.length.is_zero() || self.space.dist_pos(self.start, n) <= self.length
     }
+
+    pub fn start(&self) -> N {
+        self.start
+    }
+
+    pub fn length(&self) -> N {
+        self.length
+    }
 }
 
 #[cfg(test)]

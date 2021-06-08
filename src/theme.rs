@@ -31,7 +31,18 @@ impl<T: Default> Default for Palette<T> {
 }
 
 impl<T> Palette<T> {
-
+    pub fn as_ref(&self) -> Palette<&T> {
+        Palette {
+            black: &self.black,
+            red: &self.red,
+            green: &self.green,
+            yellow: &self.yellow,
+            blue: &self.blue,
+            purple: &self.purple,
+            cyan: &self.cyan,
+            white: &self.white,
+        }
+    }
 
     pub fn map<F, R>(self, mut f: F) -> Palette<R>
     where
@@ -47,6 +58,30 @@ impl<T> Palette<T> {
             cyan: f(self.cyan),
             white: f(self.white),
         }
+    }
+
+    pub fn zip<U>(self, other: Palette<U>) -> Palette<(T, U)> {
+        Palette {
+            black: (self.black, other.black),
+            red: (self.red, other.red),
+            green: (self.green, other.green),
+            yellow: (self.yellow, other.yellow),
+            blue: (self.blue, other.blue),
+            purple: (self.purple, other.purple),
+            cyan: (self.cyan, other.cyan),
+            white: (self.white, other.white),
+        }
+    }
+
+    pub fn accents(self) -> [T; 6] {
+        [
+            self.red,
+            self.green,
+            self.yellow,
+            self.blue,
+            self.purple,
+            self.cyan,
+        ]
     }
 }
 

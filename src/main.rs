@@ -1,4 +1,4 @@
-use log::{error, warn, info, trace, debug};
+use log::{debug, error, info, trace, warn};
 use rayon::prelude::*;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
@@ -9,12 +9,13 @@ use std::thread;
 use structopt::StructOpt;
 
 mod color;
-mod color_gen;
+mod extraction;
 mod mod_arith;
 mod persist;
 mod plugin;
 mod theme;
 
+use extraction::{Generator, ModePreference};
 use persist::{Config, Paths};
 use theme::Theme;
 
@@ -107,7 +108,10 @@ fn get_theme(opt: &Opt, paths: &Paths, config: &Config) -> io::Result<theme::The
                     use palette::Srgb;
 
                     trace!("Generating color palette...");
-                    let generator = color_gen::Generator::default();
+                    let generator = Generator {
+                        mode_preference: Some(ModePreference::Dark),
+                        ..Default::default()
+                    };
                     generator.generate(
                         img.par_chunks(3).map(|pix| {
                             Srgb::from_components((

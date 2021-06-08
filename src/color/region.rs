@@ -1,6 +1,6 @@
 use crate::mod_arith;
 use num_traits::{Float, Signed};
-use palette::{encoding::Srgb, IntoColor};
+use palette::{encoding::Srgb, Hsl, IntoColor};
 use std::ops::RangeInclusive;
 
 #[derive(Clone)]
@@ -38,6 +38,22 @@ where
         self.hue.contains(hsl.hue.to_degrees())
             && self.saturation.contains(&hsl.saturation)
             && self.lightness.contains(&hsl.lightness)
+    }
+
+    pub fn start(&self) -> Hsl<Srgb, T> {
+        Hsl::new(
+            self.hue.start(),
+            *self.saturation.start(),
+            *self.lightness.start(),
+        )
+    }
+
+    pub fn end(&self) -> Hsl<Srgb, T> {
+        Hsl::new(
+            self.hue.length(),
+            *self.saturation.end(),
+            *self.lightness.end(),
+        )
     }
 }
 
