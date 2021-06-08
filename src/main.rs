@@ -36,11 +36,13 @@ struct Opt {
 #[derive(Debug, PartialEq, Clone, StructOpt)]
 enum Commands {
     /// Apply an existing theme.
+    #[structopt(aliases = &["app", "a"])]
     Apply(apply::Opt),
 
     /// Extract a theme from another format.
     ///
     /// Currently, themes can be extracted from images.
+    #[structopt(aliases = &["ext", "e"])]
     Extract(extraction::Opt),
 }
 
@@ -51,12 +53,12 @@ pub trait Command {
 }
 
 impl Commands {
-    fn run(&self, paths: &Paths, config: &Config) -> Result<Theme, io::Error> {
-        match self {
-            Self::Apply(apply) => apply.run(paths, config),
-            Self::Extract(extract) => extract.run(paths, config),
-        }
+  fn run(&self, paths: &Paths, config: &Config) -> Result<Theme, io::Error> {
+    match self {
+      Self::Apply(apply) => apply.run(paths, config),
+      Self::Extract(extract) => extract.run(paths, config),
     }
+  }
 }
 
 impl Opt {
@@ -90,6 +92,7 @@ fn main() -> io::Result<()> {
     paths.ensure_initialized()?;
     let config = paths.get_config()?;
 
+
     trace!("Running command...");
     let theme = opt.command.run(&paths, &config)?;
 
@@ -107,3 +110,5 @@ fn main() -> io::Result<()> {
 
     Ok(())
 }
+
+

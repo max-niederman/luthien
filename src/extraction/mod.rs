@@ -22,6 +22,7 @@ pub struct Opt {
 
 #[derive(Debug, PartialEq, Clone, StructOpt)]
 enum Extractors {
+    #[structopt(aliases = &["img", "i"])]
     Image(img::Opt),
 }
 
