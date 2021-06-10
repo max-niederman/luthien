@@ -8,7 +8,7 @@ Add the library to your Cargo.toml:
 
 ```toml
 [dependencies]
-luthien = "0.1"
+luthien-plugin = "0.1"
 ```
 
 You can view the documentation [here](https://docs.rs/luthien-plugin) on docs.rs.
