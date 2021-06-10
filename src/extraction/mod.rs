@@ -23,6 +23,7 @@ pub struct Opt {
 
 #[derive(Debug, PartialEq, Clone, StructOpt)]
 enum Extractors {
+    /// Extract common colors from an image
     #[structopt(aliases = &["img", "i"])]
     Image(img::Opt),
 }
@@ -58,7 +59,7 @@ impl Extractors {
 }
 
 impl crate::Command for Opt {
-    fn run(&self, paths: &Paths, config: &Config) -> Result<Theme> {
+    fn run(&self, paths: &Paths, config: &Config) -> Result<Option<Theme>> {
         let cache_path = self.extractor.cache_path(&paths).wrap_err("Failed to find extraction cache location")?;
 
         let theme = if self.cache && cache_path.exists() {
@@ -88,7 +89,7 @@ impl crate::Command for Opt {
             })
             .unwrap_or_else(|_| error!("Failed to create theme cache file"));
 
-        Ok(theme)
+        Ok(Some(theme))
     }
 }
 

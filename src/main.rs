@@ -1,7 +1,7 @@
 use color_eyre::eyre::{Result, WrapErr};
 use log::{info, trace};
 use std::path::PathBuf;
-use structopt::StructOpt;
+use structopt::{clap, StructOpt};
 
 mod apply;
 mod color;
@@ -44,19 +44,16 @@ enum Commands {
     /// Currently, themes can be extracted from images
     #[structopt(aliases = &["ext", "e"])]
     Extract(extraction::Opt),
+
+    /// Generate shell completions and print to stdout
+    Completions {
+      #[structopt(possible_values = &clap::Shell::variants())]
+      shell: String,
+    }
 }
 
 pub trait Command {
-    fn run(&self, paths: &Paths, config: &Config) -> Result<Theme>;
-}
-
-impl Commands {
-    fn run(&self, paths: &Paths, config: &Config) -> Result<Theme> {
-        match self {
-            Self::Apply(apply) => apply.run(paths, config),
-            Self::Extract(extract) => extract.run(paths, config),
-        }
-    }
+    fn run(&self, paths: &Paths, config: &Config) -> Result<Option<Theme>>;
 }
 
 impl Opt {
@@ -96,23 +93,34 @@ fn main() -> Result<()> {
         .wrap_err("Failed to load configuration")?;
 
     trace!("Running command...");
-    let theme = opt.command.run(&paths, &config)?;
+    let res = match opt.command {
+      Commands::Apply(cmd) => cmd.run(&paths, &config)?,
+      Commands::Extract(cmd) => cmd.run(&paths, &config)?,
 
-    info!("Theme Preview:\n{}", theme);
+      Commands::Completions { shell } => {
+        info!("Generating completions...");
+        Opt::clap().gen_completions_to("luthien", shell.parse().unwrap(), &mut std::io::stdout().lock());
 
-    if let Some(out) = opt.output {
-        trace!("Writing theme to output...");
-        serde_json::to_writer_pretty(
-            std::fs::File::create(out).wrap_err("Failed to write to output file")?,
-            &theme,
-        )
-        .wrap_err("Failed to serialize the theme")?;
-    }
+        None
+      }
+    };
 
-    if opt.apply_step {
-        info!("Applying theme...");
-        apply::apply(&config, theme).wrap_err("Failed to apply the theme")?;
+    if let Some(theme) = res {
+      info!("Theme Preview:\n{}", theme);
+
+      if let Some(out) = opt.output {
+          trace!("Writing theme to output...");
+          serde_json::to_writer_pretty(std::fs::File::create(out).wrap_err("Failed to write to output file")?, &theme)
+              .wrap_err("Failed to serialize the theme")?;
+      }
+
+      if opt.apply_step {
+          info!("Applying theme...");
+          apply::apply(&config, theme).wrap_err("Failed to apply the theme")?;
+      }
     }
 
     Ok(())
 }
+
+
