@@ -1,10 +1,11 @@
 use crate::persist::PluginConfig;
 use crate::theme::Theme;
+use color_eyre::eyre::{eyre, Result, WrapErr};
 use log::trace;
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::fs;
-use std::io::{self, ErrorKind};
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 
@@ -36,21 +37,21 @@ impl Directories {
         })
     }
 
-    fn ensure_initialized(&self) -> io::Result<()> {
+    fn ensure_initialized(&self) -> Result<()> {
         fn create_dir(path: &Path) -> io::Result<()> {
             match fs::create_dir_all(path) {
                 Ok(_) => Ok(()),
                 Err(err) => match err.kind() {
-                    ErrorKind::AlreadyExists => Ok(()),
+                    io::ErrorKind::AlreadyExists => Ok(()),
                     _ => Err(err),
                 },
             }
         }
 
-        create_dir(&self.config)?;
-        create_dir(&self.output)?;
-        create_dir(&self.cache)?;
-        create_dir(&self.data)?;
+        create_dir(&self.config).wrap_err("Failed initializing config directory")?;
+        create_dir(&self.output).wrap_err("Failed initializing output directory")?;
+        create_dir(&self.cache).wrap_err("Failed initializing cache directory")?;
+        create_dir(&self.data).wrap_err("Failed initializing data directory")?;
 
         Ok(())
     }
@@ -68,24 +69,20 @@ pub struct PluginInput {
 }
 
 pub trait Plugin {
-    fn run<P>(&self, theme: Theme, stdio_pipe: Option<P>) -> io::Result<ExitStatus>
-    where
-        P: AsRef<OsStr>;
-
+    fn run<P: AsRef<OsStr>>(&self, theme: Theme, stdio_pipe: Option<P>) -> Result<ExitStatus>;
     fn name(&self) -> String;
 }
 
 impl Plugin for PluginConfig {
-    fn run<P>(&self, theme: Theme, stdin_pipe: Option<P>) -> io::Result<ExitStatus>
-    where
-        P: AsRef<OsStr>,
-    {
+    fn run<P: AsRef<OsStr>>(&self, theme: Theme, stdin_pipe: Option<P>) -> Result<ExitStatus> {
         trace!("Preparing plugin input.");
         let input = {
             let name = self.name();
-            let directories =
-                Directories::new(&name).ok_or_else(|| io::Error::from(io::ErrorKind::Other))?;
-            directories.ensure_initialized()?;
+            let directories = Directories::new(&name)
+                .ok_or_else(|| eyre!("Failed to find plugin directories"))?;
+            directories
+                .ensure_initialized()
+                .wrap_err("Failed to initialize plugin directories")?;
 
             PluginInput {
                 pipe: stdin_pipe.as_ref().map(PathBuf::from),
@@ -101,7 +98,7 @@ impl Plugin for PluginConfig {
             .args(&self.args)
             .envs(&self.env)
             .stdin(Stdio::piped())
-            .stdout(Stdio::null()) // In the future this will be piped to allow plugins to provide more data when they error.
+            .stdout(Stdio::null()) // NOTE: In the future this will be piped to allow plugins to provide more data when they error
             .spawn()?;
 
         trace!("Writing plugin input.");
@@ -109,12 +106,12 @@ impl Plugin for PluginConfig {
             child
                 .stdin
                 .as_mut()
-                .ok_or_else(|| io::Error::from(io::ErrorKind::BrokenPipe))?,
+                .ok_or_else(|| eyre!("Failed to get stdin of plugin process"))?,
             &input,
         )?;
 
-        trace!("Waiting for plugin to finish executing.");
-        child.wait()
+        trace!("Waiting for plugin to finish executing");
+        Ok(child.wait()?)
     }
 
     fn name(&self) -> String {

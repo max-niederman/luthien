@@ -2,12 +2,12 @@ use super::Extractor;
 use crate::color::{average, Region, WhitePoint};
 use crate::persist::ExtractionConfig;
 use crate::theme::{Colors, Palette, Theme};
+use color_eyre::eyre::{Result, WrapErr};
 use log::{info, trace};
 use num_traits::{Float, Signed};
 use palette::{FromColor, IntoColor, Srgb};
 use rayon::prelude::*;
 use std::hash::{Hash, Hasher};
-use std::io;
 use structopt::StructOpt;
 
 #[derive(Debug, Clone, PartialEq, StructOpt)]
@@ -35,19 +35,18 @@ impl std::str::FromStr for Preference {
         match s {
             "dark" => Ok(Self::Dark),
             "light" => Ok(Self::Light),
-            _ => Err("Invalid preference."),
+            _ => Err("Invalid preference"),
         }
     }
 }
 
 impl Extractor for Opt {
-    type Err = io::Error;
-
-    fn hash<H: Hasher>(&self, state: &mut H) -> Result<(), Self::Err> {
-        let img = image::io::Reader::open(&self.path)?
+    fn hash<H: Hasher>(&self, state: &mut H) -> Result<()> {
+        let img = image::io::Reader::open(&self.path)
+            .wrap_err("Failed to read image file")?
             .with_guessed_format()?
             .decode()
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?
+            .wrap_err("Failed to decode image")?
             .into_rgb8();
 
         img.hash(state);
@@ -56,12 +55,14 @@ impl Extractor for Opt {
         Ok(())
     }
 
-    fn extract(&self, config: &ExtractionConfig) -> Result<Theme, Self::Err> {
+    fn extract(&self, config: &ExtractionConfig) -> Result<Theme> {
         info!("Reading and decoding image...");
-        let img = image::io::Reader::open(&self.path)?
-            .with_guessed_format()?
+        let img = image::io::Reader::open(&self.path)
+            .wrap_err("Failed to read image file")?
+            .with_guessed_format()
+            .wrap_err("Failed to guess image format")?
             .decode()
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?
+            .wrap_err("Failed to decode image")?
             .into_rgb8();
 
         Ok(Theme {

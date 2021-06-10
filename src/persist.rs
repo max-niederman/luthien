@@ -1,4 +1,5 @@
 use crate::{color, theme};
+use color_eyre::eyre::{Report, Result, WrapErr};
 use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -21,9 +22,9 @@ impl Paths {
         self
     }
 
-    pub fn ensure_initialized(&self) -> io::Result<()> {
-        fs::create_dir_all(&self.themes)?;
-        fs::create_dir_all(&self.cache)?;
+    pub fn ensure_initialized(&self) -> Result<()> {
+        fs::create_dir_all(&self.themes).wrap_err("Failed to initialize themes directory")?;
+        fs::create_dir_all(&self.cache).wrap_err("Failed to initialize cache directory")?;
 
         if !self.config.exists() {
             self.config.parent().map(fs::create_dir_all);
@@ -33,41 +34,41 @@ impl Paths {
         Ok(())
     }
 
-    pub fn get_config(&self) -> io::Result<Config> {
+    pub fn get_config(&self) -> Result<Config> {
         match fs::read(&self.config) {
-            Ok(raw) => {
-                toml::from_slice(&raw).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
-            }
+            Ok(raw) => toml::from_slice(&raw).wrap_err("Failed to deserialize configuration file"),
             Err(err) => {
                 if err.kind() == io::ErrorKind::NotFound {
-                    warn!("Config file not found. Using default.");
+                    warn!("Config file not found; Using default");
                     Ok(Config::default())
                 } else {
-                    Err(err)
+                    Err(Report::new(err).wrap_err("Failed to read configuration file"))
                 }
             }
         }
     }
 
-    pub fn get_theme(&self, locator: impl AsRef<Path>) -> io::Result<theme::Theme> {
-        let file = File::open(&locator).or_else(|_| File::open(self.themes.join(locator)))?;
+    pub fn get_theme(&self, locator: impl AsRef<Path>) -> Result<theme::Theme> {
+        let file = File::open(&locator)
+            .or_else(|_| File::open(self.themes.join(locator)))
+            .wrap_err("Failed to read theme file")?;
         let reader = io::BufReader::new(file);
 
-        serde_json::from_reader(reader).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        serde_json::from_reader(reader).wrap_err("Failed to deserialize theme")
     }
 }
 
 impl Default for Paths {
     fn default() -> Self {
         let config_root = dirs::config_dir()
-            .expect("Couldn't find config directory.")
+            .expect("Couldn't find config directory")
             .join("luthien");
 
         Self {
             config: config_root.join("config.toml"),
             themes: config_root.join("themes"),
             cache: dirs::cache_dir()
-                .expect("Couldn't find cache directory.")
+                .expect("Couldn't find cache directory")
                 .join("luthien"),
         }
     }
@@ -174,7 +175,7 @@ impl From<PluginConfigRaw> for PluginConfig {
                         std::iter::once(
                             dirs::home_dir()
                                 .ok_or_else(std::env::current_dir)
-                                .expect("Couldn't expand tilde (~) in plugin executable path."),
+                                .expect("Failed to expand tilde (~) in plugin executable path"),
                         )
                         .chain(raw.executable.iter().skip(1).map(PathBuf::from)),
                     )

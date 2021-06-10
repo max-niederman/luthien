@@ -1,5 +1,5 @@
+use color_eyre::eyre::{Result, WrapErr};
 use log::{info, trace};
-use std::io;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -17,15 +17,15 @@ use theme::Theme;
 #[derive(Debug, PartialEq, Clone, StructOpt)]
 #[structopt(name = "luthien")]
 struct Opt {
-    /// Override the config file.
+    /// Override the config file
     #[structopt(short, long)]
     config: Option<PathBuf>,
 
-    /// Skip applying the theme.
+    /// Skip applying the theme
     #[structopt(short = "s", long = "skip", parse(from_flag = std::ops::Not::not))]
     apply_step: bool,
 
-    /// Output file for the theme.
+    /// Output file for the theme
     #[structopt(short, long)]
     output: Option<PathBuf>,
 
@@ -39,26 +39,24 @@ enum Commands {
     #[structopt(aliases = &["app", "a"])]
     Apply(apply::Opt),
 
-    /// Extract a theme from another format.
+    /// Extract a theme from another format
     ///
-    /// Currently, themes can be extracted from images.
+    /// Currently, themes can be extracted from images
     #[structopt(aliases = &["ext", "e"])]
     Extract(extraction::Opt),
 }
 
 pub trait Command {
-    type Err: std::error::Error;
-
-    fn run(&self, paths: &Paths, config: &Config) -> Result<Theme, Self::Err>;
+    fn run(&self, paths: &Paths, config: &Config) -> Result<Theme>;
 }
 
 impl Commands {
-  fn run(&self, paths: &Paths, config: &Config) -> Result<Theme, io::Error> {
-    match self {
-      Self::Apply(apply) => apply.run(paths, config),
-      Self::Extract(extract) => extract.run(paths, config),
+    fn run(&self, paths: &Paths, config: &Config) -> Result<Theme> {
+        match self {
+            Self::Apply(apply) => apply.run(paths, config),
+            Self::Extract(extract) => extract.run(paths, config),
+        }
     }
-  }
 }
 
 impl Opt {
@@ -81,7 +79,8 @@ fn init_logger() {
     pretty_env_logger::init()
 }
 
-fn main() -> io::Result<()> {
+fn main() -> Result<()> {
+    color_eyre::install()?;
     init_logger();
 
     trace!("Parsing opts...");
@@ -89,9 +88,12 @@ fn main() -> io::Result<()> {
 
     trace!("Loading configuration...");
     let paths = opt.get_paths();
-    paths.ensure_initialized()?;
-    let config = paths.get_config()?;
-
+    paths
+        .ensure_initialized()
+        .wrap_err("Failed to initialize config, data, and/or cache directories")?;
+    let config = paths
+        .get_config()
+        .wrap_err("Failed to load configuration")?;
 
     trace!("Running command...");
     let theme = opt.command.run(&paths, &config)?;
@@ -100,15 +102,17 @@ fn main() -> io::Result<()> {
 
     if let Some(out) = opt.output {
         trace!("Writing theme to output...");
-        serde_json::to_writer_pretty(std::fs::File::create(out)?, &theme)?;
+        serde_json::to_writer_pretty(
+            std::fs::File::create(out).wrap_err("Failed to write to output file")?,
+            &theme,
+        )
+        .wrap_err("Failed to serialize the theme")?;
     }
 
     if opt.apply_step {
         info!("Applying theme...");
-        apply::apply(&config, theme)?;
+        apply::apply(&config, theme).wrap_err("Failed to apply the theme")?;
     }
 
     Ok(())
 }
-
-
