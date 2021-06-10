@@ -21,9 +21,9 @@ struct Opt {
     #[structopt(short, long)]
     config: Option<PathBuf>,
 
-    /// Skip running plugins.
+    /// Skip applying the theme.
     #[structopt(short = "s", long = "skip", parse(from_flag = std::ops::Not::not))]
-    apply: bool,
+    apply_step: bool,
 
     /// Output file for the theme.
     #[structopt(short, long)]
@@ -103,7 +103,7 @@ fn main() -> io::Result<()> {
         serde_json::to_writer_pretty(std::fs::File::create(out)?, &theme)?;
     }
 
-    if opt.apply {
+    if opt.apply_step {
         info!("Applying theme...");
         apply::apply(&config, theme)?;
     }

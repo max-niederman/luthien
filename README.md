@@ -35,7 +35,7 @@ You should get output that looks something like this:
 
 _NOTE: You may recognize this as output from Rust's `log` framework; and indeed, if you set `RUST_LOG=trace`, you'll get much more granular output._
 
-Now, at this point, you might have noticed that nothing happened. This is because Luthien does nothing but generate themes on its own. If you want to get the theme, you can use the `--output` flag (or `-o` for short). If we did `luthien -i path/to/image.jpg -o theme.json`, `theme.json` would look something like this:
+Now, at this point, you might have noticed that nothing happened. This is because Luthien does nothing but generate themes on its own. If you want to get the theme, you can use the `--output` flag (or `-o` for short). If we did `luthien -o theme.json extract image path/to/image.jpg`, `theme.json` would look something like this:
 
 ```json
 {
