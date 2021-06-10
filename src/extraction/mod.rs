@@ -21,6 +21,15 @@ pub struct Opt {
     extractor: Extractors,
 }
 
+pub trait Extractor {
+    fn extract(&self, config: &ExtractionConfig) -> Result<Theme>;
+    fn hash<H: Hasher>(&self, state: &mut H) -> Result<()>;
+}
+
+#[impl_enum::with_methods {
+  fn extract(&self, config: &ExtractionConfig) -> Result<Theme> {}
+  fn hash<H: Hasher>(&self, state: &mut H) -> Result<()> {}
+}]
 #[derive(Debug, PartialEq, Clone, StructOpt)]
 enum Extractors {
     /// Extract common colors from an image
@@ -28,25 +37,7 @@ enum Extractors {
     Image(img::Opt),
 }
 
-pub trait Extractor {
-    fn extract(&self, config: &ExtractionConfig) -> Result<Theme>;
-    fn hash<H: Hasher>(&self, state: &mut H) -> Result<()>;
-}
-
-// TODO: Rewrite with macros
 impl Extractors {
-    fn extract(&self, config: &ExtractionConfig) -> Result<Theme> {
-        match self {
-            Self::Image(img) => img.extract(config),
-        }
-    }
-
-    fn hash<H: Hasher>(&self, state: &mut H) -> Result<()> {
-        match self {
-            Self::Image(img) => img.hash(state),
-        }
-    }
-
     fn cache_path(&self, paths: &Paths) -> Result<PathBuf> {
         let hash = {
             let mut hasher = DefaultHasher::default();
@@ -60,8 +51,10 @@ impl Extractors {
 
 impl crate::Command for Opt {
     fn run(&self, paths: &Paths, config: &Config) -> Result<Option<Theme>> {
+        trace!("Finding extraction cache location...");
         let cache_path = self.extractor.cache_path(&paths).wrap_err("Failed to find extraction cache location")?;
 
+        info!("Extracting theme...");
         let theme = if self.cache && cache_path.exists() {
             info!("Cache hit; using cached theme...");
 

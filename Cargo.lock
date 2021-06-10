@@ -620,6 +620,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "impl-enum"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcf669990de016afa11e8cf922127c3ea8e817c0f0639aee9ad2906539e8a5bb"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "indenter"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -723,6 +733,7 @@ dependencies = [
  "colored",
  "dirs",
  "image",
+ "impl-enum",
  "ipipe",
  "log",
  "num-traits",

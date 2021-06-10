@@ -115,7 +115,6 @@ fn main() -> Result<()> {
       }
 
       if opt.apply_step {
-          info!("Applying theme...");
           apply::apply(&config, theme).wrap_err("Failed to apply the theme")?;
       }
     }

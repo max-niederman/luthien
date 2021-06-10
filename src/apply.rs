@@ -28,10 +28,13 @@ pub fn apply(config: &Config, theme: Theme) -> Result<()> {
         ipipe::Pipe::open(&pipe_path, ipipe::OnCleanup::Delete)
     }
 
+    info!("Applying theme...");
+
     trace!("Spawning plugin IO pipes...");
     thread::spawn(|| io::copy(&mut io::stdin(), &mut get_pipe()?));
     thread::spawn(|| io::copy(&mut get_pipe()?, &mut io::stdout()));
 
+    info!("Running plugins...");
     for pl in config.plugins.iter() {
         trace!("Running plugin {}...", pl.name());
         match pl.run(
@@ -43,7 +46,7 @@ pub fn apply(config: &Config, theme: Theme) -> Result<()> {
         ) {
             Ok(status) => {
                 if status.success() {
-                    info!("Plugin {} exited successfully.", pl.name());
+                    info!("Plugin {} exited successfully", pl.name());
                 } else {
                     error!("Plugin {} exited with a non-zero error code", pl.name());
                 }
