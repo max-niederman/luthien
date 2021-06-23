@@ -48,6 +48,13 @@ pub fn apply(config: &Config, theme: Theme) -> Result<()> {
         trace!("Copying wallpaper to application output directory...");
         fs::copy(path, output_dir.join("wallpaper"))
             .wrap_err("Failed to copy wallpaper to application output")?;
+    } else {
+        let path = output_dir.join("wallpaper");
+        if path.exists() {
+            trace!("Removing old wallpaper from application output");
+            fs::remove_file(path)
+                .wrap_err("Failed to delete old wallpaper from application output")?;
+        }
     }
 
     trace!("Spawning plugin IO pipes...");
