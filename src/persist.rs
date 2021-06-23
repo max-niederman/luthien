@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::hash::{Hash, Hasher};
 use std::io;
-use std::iter::FromIterator;
+use std::mem;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -74,23 +74,28 @@ impl Default for Paths {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct RegionConfig {
     hue: (f32, f32),
     saturation: (f32, f32),
     lightness: (f32, f32),
 }
 
+impl PartialEq for RegionConfig {
+    fn eq(&self, other: &Self) -> bool {
+        fn as_bytes(v: &RegionConfig) -> [u8; mem::size_of::<RegionConfig>()] {
+            unsafe { std::mem::transmute_copy(v) }
+        }
+
+        as_bytes(self).eq(&as_bytes(other))
+    }
+}
+
 impl Hash for RegionConfig {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let mut hash_comp = |comp: f32| state.write(&comp.to_le_bytes());
-
-        hash_comp(self.hue.0);
-        hash_comp(self.hue.1);
-        hash_comp(self.saturation.0);
-        hash_comp(self.saturation.1);
-        hash_comp(self.lightness.0);
-        hash_comp(self.lightness.1);
+        state.write(unsafe {
+            &std::mem::transmute_copy::<_, [u8; std::mem::size_of::<RegionConfig>()]>(self)
+        })
     }
 }
 
@@ -171,14 +176,13 @@ impl From<PluginConfigRaw> for PluginConfig {
         Self {
             executable: {
                 if raw.executable.iter().next() == Some("~".as_ref()) {
-                    PathBuf::from_iter(
-                        std::iter::once(
-                            dirs::home_dir()
-                                .ok_or_else(std::env::current_dir)
-                                .expect("Failed to expand tilde (~) in plugin executable path"),
-                        )
-                        .chain(raw.executable.iter().skip(1).map(PathBuf::from)),
+                    std::iter::once(
+                        dirs::home_dir()
+                            .ok_or_else(std::env::current_dir)
+                            .expect("Failed to expand tilde (~) in plugin executable path"),
                     )
+                    .chain(raw.executable.iter().skip(1).map(PathBuf::from))
+                    .collect()
                 } else if raw.executable.is_relative() {
                     dirs::config_dir()
                         .map(|p| p.join("luthien"))
@@ -209,14 +213,14 @@ pub struct PluginConfig {
     pub options: serde_json::Value,
 }
 
-#[serde(default)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ExtractionConfig {
     pub target: theme::Palette<RegionConfig>,
 }
 
-#[serde(default)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Config {
     pub plugins: Vec<PluginConfig>,
     pub extraction: ExtractionConfig,
