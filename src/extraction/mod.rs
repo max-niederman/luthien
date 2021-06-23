@@ -41,7 +41,8 @@ impl Extractors {
     fn cache_path(&self, paths: &Paths) -> Result<PathBuf> {
         let hash = {
             let mut hasher = DefaultHasher::default();
-            self.hash(&mut hasher).wrap_err("Failed to generate caching ID for extraction")?;
+            self.hash(&mut hasher)
+                .wrap_err("Failed to generate caching ID for extraction")?;
             hasher.finish()
         };
 
@@ -52,7 +53,10 @@ impl Extractors {
 impl crate::Command for Opt {
     fn run(&self, paths: &Paths, config: &Config) -> Result<Option<Theme>> {
         trace!("Finding extraction cache location...");
-        let cache_path = self.extractor.cache_path(&paths).wrap_err("Failed to find extraction cache location")?;
+        let cache_path = self
+            .extractor
+            .cache_path(&paths)
+            .wrap_err("Failed to find extraction cache location")?;
 
         info!("Extracting theme...");
         let theme = if self.cache && cache_path.exists() {
@@ -85,5 +89,3 @@ impl crate::Command for Opt {
         Ok(Some(theme))
     }
 }
-
-

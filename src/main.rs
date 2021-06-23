@@ -47,9 +47,9 @@ enum Commands {
 
     /// Generate shell completions and print to stdout
     Completions {
-      #[structopt(possible_values = &clap::Shell::variants())]
-      shell: String,
-    }
+        #[structopt(possible_values = &clap::Shell::variants())]
+        shell: String,
+    },
 }
 
 pub trait Command {
@@ -94,32 +94,37 @@ fn main() -> Result<()> {
 
     trace!("Running command...");
     let res = match opt.command {
-      Commands::Apply(cmd) => cmd.run(&paths, &config)?,
-      Commands::Extract(cmd) => cmd.run(&paths, &config)?,
+        Commands::Apply(cmd) => cmd.run(&paths, &config)?,
+        Commands::Extract(cmd) => cmd.run(&paths, &config)?,
 
-      Commands::Completions { shell } => {
-        info!("Generating completions...");
-        Opt::clap().gen_completions_to("luthien", shell.parse().unwrap(), &mut std::io::stdout().lock());
+        Commands::Completions { shell } => {
+            info!("Generating completions...");
+            Opt::clap().gen_completions_to(
+                "luthien",
+                shell.parse().unwrap(),
+                &mut std::io::stdout().lock(),
+            );
 
-        None
-      }
+            None
+        }
     };
 
     if let Some(theme) = res {
-      info!("Theme Preview:\n{}", theme);
+        info!("Theme Preview:\n{}", theme);
 
-      if let Some(out) = opt.output {
-          trace!("Writing theme to output...");
-          serde_json::to_writer_pretty(std::fs::File::create(out).wrap_err("Failed to write to output file")?, &theme)
-              .wrap_err("Failed to serialize the theme")?;
-      }
+        if let Some(out) = opt.output {
+            trace!("Writing theme to output...");
+            serde_json::to_writer_pretty(
+                std::fs::File::create(out).wrap_err("Failed to write to output file")?,
+                &theme,
+            )
+            .wrap_err("Failed to serialize the theme")?;
+        }
 
-      if opt.apply_step {
-          apply::apply(&config, theme).wrap_err("Failed to apply the theme")?;
-      }
+        if opt.apply_step {
+            apply::apply(&config, theme).wrap_err("Failed to apply the theme")?;
+        }
     }
 
     Ok(())
 }
-
-
