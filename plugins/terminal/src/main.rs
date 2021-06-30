@@ -83,10 +83,8 @@ fn main() -> io::Result<()> {
     let mut count = 0;
     for entry in fs::read_dir("/dev/pts")? {
         let entry = entry?;
-        if entry.file_name() != "ptmx" {
-            if fs::write(entry.path(), &sequence).is_ok() {
-                count += 1;
-            }
+        if entry.file_name() != "ptmx" && fs::write(entry.path(), &sequence).is_ok() {
+            count += 1;
         }
     }
 

@@ -67,7 +67,7 @@ mod filters {
         macro_rules! adjustment {
             ($key:expr, $func:expr) => {{
                 if let Some(arg) = args.get($key).and_then(Value::as_f64) {
-                    col = $func(&mut col, arg as f32);
+                    col = $func(&col, arg as f32);
                 }
             }};
         }

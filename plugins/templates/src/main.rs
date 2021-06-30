@@ -1,6 +1,6 @@
 mod render;
 
-use color_eyre::eyre::{eyre, Result, WrapErr};
+use color_eyre::eyre::{Result, WrapErr};
 use render::Renderer;
 
 fn main() -> Result<()> {
