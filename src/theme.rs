@@ -113,7 +113,10 @@ pub struct Colors<Color = Srgb> {
     pub background: Color,
 }
 
-impl<T> fmt::Display for Colors<T> where T: IntoColor + Clone {
+impl<T> fmt::Display for Colors<T>
+where
+    T: IntoColor + Clone,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Palette: {}", self.palette)?;
 
