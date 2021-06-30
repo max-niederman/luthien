@@ -1,0 +1,5 @@
+{{ colors.background | hex }}
+{{ colors.accents.0 | hex }}
+{{ colors.palette.black | hex }}
+{{ colors.palette.black | hex(prefix="hex") }}
+{{ colors.palette.black | adjust(lighten=0.5) | hex }}

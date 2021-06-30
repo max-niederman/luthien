@@ -27,18 +27,15 @@ fn integrate() {
         .wait_with_output()
         .expect("Failed to wait on luthien-templates process.");
     assert_eq!(std::str::from_utf8(&out.stdout).unwrap(), "");
-    assert_eq!(
-        std::str::from_utf8(&out.stderr).unwrap(),
-        "",
-    );
+    assert_eq!(std::str::from_utf8(&out.stderr).unwrap(), "",);
 
     // Check template output
     for entry in fs::read_dir("tests/correct").unwrap() {
         let entry = entry.unwrap();
 
         assert_eq!(
-            fs::read(entry.path()).unwrap(),
-            fs::read(Path::new("tests/out").join(entry.file_name())).unwrap(),
+            std::str::from_utf8(&fs::read(entry.path()).unwrap()),
+            std::str::from_utf8(&fs::read(Path::new("tests/out").join(entry.file_name())).unwrap()),
         )
     }
 

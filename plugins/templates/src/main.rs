@@ -1,7 +1,7 @@
 mod render;
 
-use render::Renderer;
 use color_eyre::eyre::{eyre, Result};
+use render::Renderer;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -12,7 +12,7 @@ fn main() -> Result<()> {
     let ress = renderer.render(input.directories.output);
 
     for err in ress.into_iter().filter_map(Result::err) {
-        eprintln!("{}", err)
+        eprintln!("{:?}", err)
     }
 
     Ok(())

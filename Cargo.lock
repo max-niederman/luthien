@@ -844,8 +844,6 @@ dependencies = [
  "color-eyre",
  "dirs",
  "luthien-plugin",
- "serde",
- "serde_json",
  "tera",
 ]
 
