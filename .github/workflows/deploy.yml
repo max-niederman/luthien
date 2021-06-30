@@ -73,17 +73,18 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --locked --target ${{ matrix.target }}
+          args: --release --locked --workspace --target ${{ matrix.target }}
           use-cross: ${{ matrix.os == 'ubuntu-latest' }}
         env:
           NO_RESOURCES: true
 
       - name: Post Build | Prepare Artifacts [Windows]
         if: matrix.os == 'windows-latest'
+        shell: bash
         run: |
           cd target/${{ matrix.target }}/release
           strip luthien.exe
-          7z a ../../../${{ matrix.name }} luthien.exe
+          7z a ../../../${{ matrix.name }} $(find . -maxdepth 1 -type f -executable)
           cd -
 
       - name: Post Build | Prepare Artifacts [-nix]
@@ -91,7 +92,7 @@ jobs:
         run: |
           cd target/${{ matrix.target }}/release
           strip luthien || true
-          tar czvf ../../../${{ matrix.name }} luthien
+          tar czvf ../../../${{ matrix.name }} $(find . -maxdepth 1 -type f -executable)
           cd -
 
       - name: Deploy | Upload Artifacts
