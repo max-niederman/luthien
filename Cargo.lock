@@ -799,7 +799,7 @@ dependencies = [
 
 [[package]]
 name = "luthien"
-version = "0.4.1-alpha.0"
+version = "0.4.1"
 dependencies = [
  "color-eyre",
  "colored",

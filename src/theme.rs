@@ -90,19 +90,6 @@ where
     T: IntoColor + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fn color_block<T: IntoColor + Clone>(col: T) -> impl fmt::Display {
-            use colored::*;
-
-            let col = col
-                .into_rgb::<palette::encoding::Srgb>()
-                .into_encoding::<palette::encoding::Srgb>();
-            "  ".on_truecolor(
-                (col.red * 0xFF as f32) as u8,
-                (col.green * 0xFF as f32) as u8,
-                (col.blue * 0xFF as f32) as u8,
-            )
-        }
-
         write!(
             f,
             "{}{}{}{}{}{}{}{}",
@@ -126,20 +113,49 @@ pub struct Colors<Color = Srgb> {
     pub background: Color,
 }
 
+impl<T> fmt::Display for Colors<T> where T: IntoColor + Clone {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Palette: {}", self.palette)?;
+
+        write!(f, "Accents: ")?;
+        for accent in self.accents.iter() {
+            write!(f, "{}", color_block(accent.clone()))?;
+        }
+        writeln!(f)?;
+
+        writeln!(f, "Foreground: {}", color_block(self.foreground.clone()))?;
+        write!(f, "Background: {}", color_block(self.background.clone()))?;
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Theme {
     pub wallpaper: Option<PathBuf>,
     pub colors: Colors,
 }
 
-// TODO: Implement [`Display`] for [`Colors`] and use here.
 impl fmt::Display for Theme {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(bg) = &self.wallpaper {
             writeln!(f, "Wallpaper: {}", bg.to_str().ok_or(fmt::Error)?)?;
         }
-        write!(f, "Color Palette: {}", self.colors.palette)
+        write!(f, "{}", self.colors)
     }
+}
+
+fn color_block<T: IntoColor + Clone>(col: T) -> impl fmt::Display {
+    use colored::*;
+
+    let col = col
+        .into_rgb::<palette::encoding::Srgb>()
+        .into_encoding::<palette::encoding::Srgb>();
+    "  ".on_truecolor(
+        (col.red * 0xFF as f32) as u8,
+        (col.green * 0xFF as f32) as u8,
+        (col.blue * 0xFF as f32) as u8,
+    )
 }
 
 #[cfg(test)]
