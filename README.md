@@ -1,5 +1,11 @@
 # Luthien
 
+[![Crates.io](https://img.shields.io/crates/v/luthien)](https://crates.io/crates/luthien)
+[![GitHub Stars](https://img.shields.io/github/stars/max-niederman/luthien)](https://github.com/max-niederman/luthien)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/max-niederman/luthien/Rust)](https://github.com/max-niederman/luthien/actions)
+[![GitHub issues](https://img.shields.io/github/issues/max-niederman/luthien)](https://github.com/max-niederman/luthien/issues)
+[![License](https://img.shields.io/crates/l/luthien)](./LICENSE.md)
+
 Luthien is a WIP tool which generates color schemes and applying them to your system. It strives to produce beautiful color schemes and be highly extensible.
 
 ## Features
