@@ -29,7 +29,7 @@ fn integrate() {
     assert_eq!(std::str::from_utf8(&out.stdout).unwrap(), "");
     assert_eq!(
         std::str::from_utf8(&out.stderr).unwrap(),
-        "Successfully rendered 1/1 templates.\n",
+        "",
     );
 
     // Check template output

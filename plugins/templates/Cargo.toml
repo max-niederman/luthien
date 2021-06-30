@@ -1,14 +1,15 @@
 [package]
 name = "luthien-templates"
 description = "Luthien plugin which renders Handlebars templates."
-version = "0.1.0"
+version = "0.2.0-alpha.0"
 authors = ["Max Niederman <max@maxniederman.com>"]
 license = "MIT"
 edition = "2018"
 
 [dependencies]
-luthien-plugin = { path = "../lib/rust", version = "0.1" }
+luthien-plugin = { path = "../lib/rust", version = "0.1", features = ["palette"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-handlebars = "3.5"
+tera = "1.11"
 dirs = "3.0"
+color-eyre = "0.5"

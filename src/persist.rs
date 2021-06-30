@@ -94,7 +94,7 @@ impl PartialEq for RegionConfig {
 impl Hash for RegionConfig {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write(unsafe {
-            &std::mem::transmute_copy::<_, [u8; std::mem::size_of::<RegionConfig>()]>(self)
+            &std::mem::transmute_copy::<_, [u8; mem::size_of::<RegionConfig>()]>(self)
         })
     }
 }
