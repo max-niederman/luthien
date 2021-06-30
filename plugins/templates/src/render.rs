@@ -1,4 +1,4 @@
-use color_eyre::eyre::{Report, Result};
+use color_eyre::eyre::{Report, Result, WrapErr};
 use luthien_plugin::Input;
 use std::{
     fs::{self, File},
@@ -21,7 +21,8 @@ impl Renderer {
                 tr.register_filter("hex", filters::hex);
 
                 tr.add_template_files(
-                    fs::read_dir(&input.directories.config)?
+                    fs::read_dir(&input.directories.config)
+                        .wrap_err("Failed to read template directory")?
                         .filter_map(Result::ok)
                         .map(|e| (e.path(), e.file_name().into_string().ok()))
                         .collect::<Vec<(PathBuf, Option<String>)>>(),
@@ -29,18 +30,26 @@ impl Renderer {
 
                 tr
             },
-            ctx: tera::Context::from_serialize(&input.theme)?,
+            ctx: tera::Context::from_serialize(&input.theme)
+                .wrap_err("Failed to create template rendering context")?,
         })
     }
 
-    pub fn render(&self, out_dir: PathBuf) -> Vec<Result<()>> {
+    pub fn render(&self, out_dir: PathBuf) -> Vec<(String, Result<()>)> {
         self.tera
             .get_template_names()
-            .map(|name| {
+            .map(String::from)
+            .zip(self.tera.get_template_names().map(|name| {
                 self.tera
-                    .render_to(name, &self.ctx, File::create(out_dir.join(name))?)
+                    .render_to(
+                        name,
+                        &self.ctx,
+                        File::create(out_dir.join(name))
+                            .wrap_err("Failed to create output file")?,
+                    )
                     .map_err(Report::new)
-            })
+                    .wrap_err("Tera failed rendering the template")
+            }))
             .collect()
     }
 }

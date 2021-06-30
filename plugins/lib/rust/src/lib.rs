@@ -75,7 +75,6 @@ pub struct Input {
 }
 
 /// Get the plugin's input or [`None`] if it couldn't be deserialized.
-pub fn get_input() -> Option<Input> {
-    // TODO: Add more informative error data
-    serde_json::from_reader(&mut std::io::stdin()).ok()
+pub fn get_input() -> Result<Input, serde_json::Error> {
+    serde_json::from_reader(&mut std::io::stdin())
 }
