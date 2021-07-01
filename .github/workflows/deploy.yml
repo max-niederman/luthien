@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          strip luthien.exe
+          strip $(find . -maxdepth 1 -type f -executable)
           7z a ../../../${{ matrix.name }} $(find . -maxdepth 1 -type f -executable)
           cd -
 
@@ -91,7 +91,7 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           cd target/${{ matrix.target }}/release
-          strip luthien || true
+          strip $(find . -maxdepth 1 -type f -executable) || true
           tar czvf ../../../${{ matrix.name }} $(find . -maxdepth 1 -type f -executable)
           cd -
 
