@@ -1,4 +1,5 @@
 mod img;
+mod toml;
 
 use crate::persist::{Config, ExtractionConfig, Paths};
 use crate::theme::Theme;
@@ -23,30 +24,41 @@ pub struct Opt {
 
 pub trait Extractor {
     fn extract(&self, config: &ExtractionConfig) -> Result<Theme>;
-    fn hash<H: Hasher>(&self, state: &mut H) -> Result<()>;
+    fn hash<H: Hasher>(&self, config: &ExtractionConfig, state: &mut H) -> Result<HashResult>;
 }
 
 #[impl_enum::with_methods {
   fn extract(&self, config: &ExtractionConfig) -> Result<Theme> {}
-  fn hash<H: Hasher>(&self, state: &mut H) -> Result<()> {}
+  fn hash<H: Hasher>(&self, config: &ExtractionConfig, state: &mut H) -> Result<HashResult> {}
 }]
 #[derive(Debug, PartialEq, Clone, StructOpt)]
 enum Extractors {
     /// Extract common colors from an image
     #[structopt(aliases = &["img", "i"])]
     Image(img::Opt),
+
+    /// Manually create a theme.
+    #[structopt(aliases = &["manual", "man"])]
+    Toml(toml::Opt),
 }
 
 impl Extractors {
-    fn cache_path(&self, paths: &Paths) -> Result<PathBuf> {
+    fn cache_path(&self, paths: &Paths, config: &Config) -> Result<Option<PathBuf>> {
         let hash = {
             let mut hasher = DefaultHasher::default();
-            self.hash(&mut hasher)
-                .wrap_err("Failed to generate caching ID for extraction")?;
+
+            if !self
+                .hash(&config.extraction, &mut hasher)
+                .wrap_err("Failed to generate caching ID for extraction")?
+                .finished()
+            {
+                return Ok(None);
+            }
+
             hasher.finish()
         };
 
-        Ok(paths.cache.join(format!("{:16x}", hash)))
+        Ok(Some(paths.cache.join(format!("{:16x}", hash))))
     }
 }
 
@@ -55,15 +67,18 @@ impl crate::Command for Opt {
         trace!("Finding extraction cache location...");
         let cache_path = self
             .extractor
-            .cache_path(&paths)
+            .cache_path(paths, config)
             .wrap_err("Failed to find extraction cache location")?;
 
         info!("Extracting theme...");
-        let theme = if self.cache && cache_path.exists() {
+        // NOTE: This is necessary because let chains are not yet stable. In the future, `if let Some(cache_path) = cache_path && ...` should be possible.
+        let theme = if cache_path.is_some() && self.cache && cache_path.as_ref().unwrap().exists() {
+            let cache_path = cache_path.as_ref().unwrap();
+
             info!("Cache hit; using cached theme...");
 
             serde_json::from_reader(
-                File::open(&cache_path).wrap_err("Failed reading cached theme file")?,
+                File::open(cache_path).wrap_err("Failed reading cached theme file")?,
             )
             .wrap_err("Failed deserializing cached theme file")?
         } else {
@@ -78,14 +93,30 @@ impl crate::Command for Opt {
                 .wrap_err("Failed to extract theme")?
         };
 
-        trace!("Caching extracted theme...");
-        File::create(&cache_path)
-            .map(|file| {
-                serde_json::to_writer(file, &theme)
-                    .unwrap_or_else(|_| warn!("Failed to write theme to cache file"))
-            })
-            .unwrap_or_else(|_| error!("Failed to create theme cache file"));
+        if let Some(cache_path) = cache_path {
+            trace!("Caching extracted theme...");
+            File::create(cache_path)
+                .map(|file| {
+                    serde_json::to_writer(file, &theme)
+                        .unwrap_or_else(|_| warn!("Failed to write theme to cache file"))
+                })
+                .unwrap_or_else(|_| error!("Failed to create theme cache file"));
+        }
 
         Ok(Some(theme))
+    }
+}
+
+pub enum HashResult {
+    Finished,
+    Inapplicable,
+}
+
+impl HashResult {
+    pub fn finished(self) -> bool {
+        match self {
+            Self::Finished => true,
+            Self::Inapplicable => false,
+        }
     }
 }

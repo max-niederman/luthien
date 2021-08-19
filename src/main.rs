@@ -15,7 +15,7 @@ use persist::{Config, Paths};
 use theme::Theme;
 
 #[derive(Debug, PartialEq, Clone, StructOpt)]
-#[structopt(name = "luthien")]
+#[structopt(author, about)]
 struct Opt {
     /// Override the config file
     #[structopt(short, long)]

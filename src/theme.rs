@@ -113,6 +113,17 @@ pub struct Colors<Color = Srgb> {
     pub background: Color,
 }
 
+impl<T> Colors<T> {
+    pub fn map<F: FnMut(T) -> U + Copy, U>(self, mut f: F) -> Colors<U> {
+        Colors {
+            palette: self.palette.map(f),
+            accents: self.accents.into_iter().map(f).collect(),
+            foreground: f(self.foreground),
+            background: f(self.background),
+        }
+    }
+}
+
 impl<T> fmt::Display for Colors<T>
 where
     T: IntoColor + Clone,

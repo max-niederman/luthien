@@ -1,4 +1,4 @@
-use super::Extractor;
+use super::{Extractor, HashResult};
 use crate::color::{average, Region, WhitePoint};
 use crate::persist::ExtractionConfig;
 use crate::theme::{Colors, Palette, Theme};
@@ -41,7 +41,7 @@ impl std::str::FromStr for Preference {
 }
 
 impl Extractor for Opt {
-    fn hash<H: Hasher>(&self, state: &mut H) -> Result<()> {
+    fn hash<H: Hasher>(&self, _config: &ExtractionConfig, state: &mut H) -> Result<HashResult> {
         let img = image::io::Reader::open(&self.path)
             .wrap_err("Failed to read image file")?
             .with_guessed_format()?
@@ -51,8 +51,9 @@ impl Extractor for Opt {
 
         img.hash(state);
         self.preference.hash(state);
+        // FIXME: Also hash extraction target.
 
-        Ok(())
+        Ok(HashResult::Finished)
     }
 
     fn extract(&self, config: &ExtractionConfig) -> Result<Theme> {
