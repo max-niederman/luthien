@@ -1,14 +1,14 @@
 use super::{Extractor, HashResult};
 use crate::{
-    theme::{Colors, Theme},
     persist::ExtractionConfig,
+    theme::{Colors, Theme},
 };
 use color_eyre::eyre::{Result, WrapErr};
 use palette::Srgb;
 use serde::Deserialize;
+use std::hash::Hasher;
 use std::io::{self, Read};
 use std::path::PathBuf;
-use std::hash::Hasher;
 use structopt::StructOpt;
 
 /// Generate a standard theme file from an easier-to-write TOML format.
@@ -55,9 +55,11 @@ impl Extractor for Opt {
             Some(path) => std::fs::read(path).wrap_err("Failed to open input file.")?,
             None => {
                 let mut buf = Vec::new();
-                io::stdin().read_to_end(&mut buf).wrap_err("Failed to read from standard input.")?;
+                io::stdin()
+                    .read_to_end(&mut buf)
+                    .wrap_err("Failed to read from standard input.")?;
                 buf
-            },
+            }
         };
         let source: Source = toml::from_slice(&bytes).wrap_err("Source was invalid.")?;
         Ok(source.into())
