@@ -7,6 +7,7 @@ mod apply;
 mod color;
 mod extraction;
 mod mod_arith;
+mod modify;
 mod persist;
 mod plugin;
 mod theme;
@@ -39,9 +40,16 @@ enum Commands {
     #[structopt(aliases = &["app", "a"])]
     Apply(apply::Opt),
 
-    /// Extract a theme from another format
+    /// Modify one or more properties of an existing theme.
     ///
-    /// Currently, themes can be extracted from images
+    /// Currently, only some properties can be changed using this command.
+    /// Further modification must be done manually.
+    #[structopt(aliases = &["mod", "m"])]
+    Modify(modify::Opt),
+
+    /// Extract a theme from another format.
+    ///
+    /// Currently, themes can be extracted from images.
     #[structopt(aliases = &["ext", "e"])]
     Extract(extraction::Opt),
 
@@ -53,7 +61,7 @@ enum Commands {
 }
 
 pub trait Command {
-    fn run(&self, paths: &Paths, config: &Config) -> Result<Option<Theme>>;
+    fn run(self, paths: &Paths, config: &Config) -> Result<Option<Theme>>;
 }
 
 impl Opt {
@@ -95,6 +103,7 @@ fn main() -> Result<()> {
     trace!("Running command...");
     let res = match opt.command {
         Commands::Apply(cmd) => cmd.run(&paths, &config)?,
+        Commands::Modify(cmd) => cmd.run(&paths, &config)?,
         Commands::Extract(cmd) => cmd.run(&paths, &config)?,
 
         Commands::Completions { shell } => {

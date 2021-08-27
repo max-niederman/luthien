@@ -63,7 +63,7 @@ impl Extractors {
 }
 
 impl crate::Command for Opt {
-    fn run(&self, paths: &Paths, config: &Config) -> Result<Option<Theme>> {
+    fn run(self, paths: &Paths, config: &Config) -> Result<Option<Theme>> {
         trace!("Finding extraction cache location...");
         let cache_path = self
             .extractor

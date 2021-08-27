@@ -16,7 +16,7 @@ pub struct Opt {
 }
 
 impl crate::Command for Opt {
-    fn run(&self, paths: &Paths, _config: &Config) -> Result<Option<Theme>> {
+    fn run(self, paths: &Paths, _config: &Config) -> Result<Option<Theme>> {
         info!("Reading theme from filesystem...");
         Ok(Some(paths.get_theme(&self.theme)?))
     }
